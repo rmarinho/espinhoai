@@ -6,8 +6,8 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using EspinhoAI.Models;
 using HtmlAgilityPack;
+using EspinhoAI.Models;
 
 namespace EspinhoAI;
 
@@ -15,14 +15,18 @@ public partial class MainViewModel : ObservableObject
 {
     string? _url;
     ObservableCollection<string>? _yourItemsSource;
+    private readonly Repository _repository;
 
     const string biblioUrl = "https://bibliotecamunicipal.espinho.pt";
     public MainViewModel()
     {
         Items = new ObservableCollection<string>();
         Url = "https://bibliotecamunicipal.espinho.pt/pt/documentacao/defesa-de-espinho/2023/";
-        Items = DeserializeObject<ObservableCollection<string>>(nameof(Items)) ?? new ObservableCollection<string>();
-        Docs = DeserializeObject<ObservableCollection<Doc>>(nameof(Docs)) ?? new ObservableCollection<Doc>();
+        //   Items = DeserializeObject<ObservableCollection<string>>(nameof(Items)) ?? new ObservableCollection<string>();
+        // Docs = DeserializeObject<ObservableCollection<Doc>>(nameof(Docs)) ?? new ObservableCollection<Doc>();
+        Items = new ObservableCollection<string>();
+        Docs = new ObservableCollection<Doc>();
+        _repository = new Repository();
     }
 
     public string? Url
@@ -81,15 +85,22 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 _cts = new CancellationTokenSource();
-                await Task.Run(async () => await NavigateUrl(baseUrl, _cts.Token), _cts.Token);
+                var existingDocs = _repository.List();
+                if (existingDocs != null && existingDocs.Count > 0)
+                    Docs = new ObservableCollection<Doc>(existingDocs);
+                //await Task.Run(async () =>
+                //{
+                //    await NavigateUrl(baseUrl, _cts.Token);
+                //}, _cts.Token);
+
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
 
-            SerializeObject(Docs, nameof(Docs));
-            SerializeObject(Items, nameof(Items));
+            //SerializeObject(Docs, nameof(Docs));
+            //SerializeObject(Items, nameof(Items));
         }
         catch (Exception ex)
         {
@@ -99,10 +110,13 @@ public partial class MainViewModel : ObservableObject
 
     async Task NavigateUrl(string url, CancellationToken cancellationToken = default)
     {
+
         if (!ValidateUrl(url))
         {
             return;
         }
+
+        System.Diagnostics.Debug.WriteLine($"Visiting {url}");
 
         //  Url = url;
         _urlsVisited.Add(url);
@@ -232,9 +246,9 @@ public partial class MainViewModel : ObservableObject
             }
 
             // await DownloadAndSavePdf(pdfUrl, filePath);
-
+            var filename = Path.GetFileName(filePath);
             string pattern = @"(\d+)_(\d+)_(\d+)_(\d+)_[a-f0-9]+\.pdf";
-            Match match = Regex.Match(Path.GetFileName(filePath), pattern);
+            Match match = Regex.Match(filename, pattern);
 
             var doc = new Doc
             {
@@ -247,15 +261,19 @@ public partial class MainViewModel : ObservableObject
 
             if (match.Success)
             {
-                int year = Convert.ToInt32(match.Groups[4].Value);
-                int month = Convert.ToInt32(match.Groups[3].Value);
-                int day = Convert.ToInt32(match.Groups[2].Value);
-                int id = Convert.ToInt32(match.Groups[1].Value);
+                var year = match.Groups[4].Value;
+                var month = match.Groups[3].Value;
+                var day = match.Groups[2].Value;
+                var id = match.Groups[1].Value;
                 Console.WriteLine($"YEar: {year}, Month: {month}, Day: {day}");
+                doc.Day = day;
+                doc.Month = month;
+                doc.Year = year;
                 //  doc.Year = year.ToString();
             }
 
             Docs?.Add(doc);
+            _repository.Create(doc);
         }
     }
 

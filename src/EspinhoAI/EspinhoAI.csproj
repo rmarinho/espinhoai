@@ -68,17 +68,14 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+		<PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
+<PackageReference Include="SQLitePCLRaw.core" Version="2.1.0" />
+<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.0" />
+<PackageReference Include="SQLitePCLRaw.provider.dynamic_cdecl" Version="2.1.0" />
+<PackageReference Include="SQLitePCLRaw.provider.sqlite3" Version="2.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="EspinhoAI.Models\obj\project.assets.json" />
-	  <None Remove="EspinhoAI.Models\obj\EspinhoAI.Models.csproj.nuget.dgspec.json" />
-	</ItemGroup>
-	<ItemGroup>
-	  <BundleResource Include="EspinhoAI.Models\obj\project.assets.json" />
-	  <BundleResource Include="EspinhoAI.Models\obj\EspinhoAI.Models.csproj.nuget.dgspec.json" />
-	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="EspinhoAI.Models\EspinhoAI.Models.csproj" />
+	  <ProjectReference Include="..\EspinhoAI.Models\EspinhoAI.Models.csproj" />
 	</ItemGroup>
 </Project>
