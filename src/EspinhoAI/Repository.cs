@@ -13,9 +13,10 @@ namespace EspinhoAI
             var dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "entities.db");
              _database = new SQLiteConnection(dbPath);
             _database.CreateTable<Doc>();
+            _database.CreateTable<ItemScrapped>();
         }
 
-        public List<Doc> List()
+        public List<Doc> Docs()
         {
             try
             {
@@ -29,12 +30,26 @@ namespace EspinhoAI
             }
         }
 
-        public int Create(Doc entity)
+        public List<ItemScrapped> Items()
+        {
+            try
+            {
+                var table = _database.Table<ItemScrapped>();
+
+                return table.ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<ItemScrapped>();
+            }
+        }
+
+        public int Create<T>(T entity)
         {
             return _database.Insert(entity);
         }
 
-        public int Update(Doc entity)
+        public int Update<T>(T entity)
         {
             return _database.Update(entity);
         }
