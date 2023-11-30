@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="EspinhoAI.MainPage">
+             x:Class="EspinhoAI.MainPage"
+             x:Name="main">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -17,17 +18,46 @@
         <Entry Grid.Row="0" Grid.Column="0" x:Name="urlEditor" Placeholder="Enter URL" Text="{Binding Url}"/>
 
         <Button Grid.Row="0" Grid.Column="1" Text="Start" Command="{Binding StartCommand}"/>
-          <Button Grid.Row="0" Grid.Column="2" Text="Stop" Command="{Binding StopCommand}"/>
+        <Button Grid.Row="0" Grid.Column="2" Text="Stop" Command="{Binding StopCommand}"/>
 
         <WebView Grid.Row="1" Grid.Column="0" x:Name="webView" Source="{Binding WebUrl}"/>
 
-        <CollectionView Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Items}">
+        <CollectionView Grid.Row="1" Grid.Column="1"
+                        ItemsSource="{Binding Items}"
+                        SelectionMode="Single"
+                        
+                        SelectedItem="{Binding CurrentItem}">
             <!-- Define your CollectionView's item template here -->
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <StackLayout>
-                        <Label Text="{Binding .}"/>
-                    </StackLayout>
+                    <Border StrokeShape="Rectangle" StrokeThickness="1" Stroke="Red" Padding="5">
+                        <Grid Margin="10" RowSpacing="2" Padding="0,10,0,0" Background="AliceBlue">
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Label Text="{Binding Url}" Background="LightBlue" LineBreakMode="WordWrap"/>
+                            <Label Grid.Row="1" Text="{Binding FilePath}"  LineBreakMode="WordWrap" />
+                        </Grid>
+                        <FlyoutBase.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Copy URL"
+                                    Command="{Binding Path=BindingContext.CopyToClipboardCommand, Source={x:Reference main}}"
+                                    CommandParameter="{Binding Url}">
+                                    <MenuFlyoutItem.KeyboardAccelerators>
+                                        <KeyboardAccelerator Modifiers="Ctrl" Key="U" />
+                                    </MenuFlyoutItem.KeyboardAccelerators>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Copy Path"
+                                     Command="{Binding Path=BindingContext.CopyToClipboardCommand, Source={x:Reference main}}"
+                                     CommandParameter="{Binding FilePath}">
+                                    <MenuFlyoutItem.KeyboardAccelerators>
+                                        <KeyboardAccelerator Modifiers="Ctrl" Key="P" />
+                                    </MenuFlyoutItem.KeyboardAccelerators>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </FlyoutBase.ContextFlyout>
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

@@ -13,22 +13,19 @@ namespace EspinhoAI;
 
 public partial class MainViewModel : ObservableObject
 {
-    string? _url;
-    ObservableCollection<string>? _yourItemsSource;
-    private readonly Repository _repository;
+    List<string> _urlsVisited = new List<string>();
+
+    readonly Repository _repository;
 
     const string biblioUrl = "https://bibliotecamunicipal.espinho.pt";
     public MainViewModel()
     {
-        Items = new ObservableCollection<string>();
         Url = "https://bibliotecamunicipal.espinho.pt/pt/documentacao/defesa-de-espinho/2023/";
-        //   Items = DeserializeObject<ObservableCollection<string>>(nameof(Items)) ?? new ObservableCollection<string>();
-        // Docs = DeserializeObject<ObservableCollection<Doc>>(nameof(Docs)) ?? new ObservableCollection<Doc>();
-        Items = new ObservableCollection<string>();
-        Docs = new ObservableCollection<Doc>();
         _repository = new Repository();
+        TryLoadInitialCollection();
     }
 
+    string? _url;
     public string? Url
     {
         get { return _url; }
@@ -36,8 +33,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (_url != value)
             {
-                _url = value;
-                OnPropertyChanged();
+                SetProperty(ref _url, value);
                 OnPropertyChanged(nameof(WebUrl));
             }
         }
@@ -45,29 +41,37 @@ public partial class MainViewModel : ObservableObject
 
     public string? WebUrl => Url;
 
-    public ObservableCollection<string>? Items
+    ItemScrapped? _currentItem;
+    public ItemScrapped? CurrentItem
     {
-        get { return _yourItemsSource; }
+        get { return _currentItem; }
         set
         {
-            if (_yourItemsSource != value)
+            if (_currentItem != value)
             {
-                _yourItemsSource = value;
-                OnPropertyChanged();
+                SetProperty(ref _currentItem, value);
+                if(CurrentItem != null)
+                {
+                    Url = CurrentItem.Url;
+                }
             }
         }
     }
 
-    List<string> _urlsVisited = new List<string>();
+    [ObservableProperty]
+    ObservableCollection<ItemScrapped>? _items = new ObservableCollection<ItemScrapped>();
+
+    [ObservableProperty]
+    ObservableCollection<Doc>? _docs = new ObservableCollection<Doc>();
 
     [RelayCommand]
-    async Task Stop()
+    void Stop()
     {
         try
         {
             _cts?.Cancel();
-            SerializeObject(Docs, nameof(Docs));
-            SerializeObject(Items, nameof(Items));
+            //SerializeObject(Docs, nameof(Docs));
+            //SerializeObject(Items, nameof(Items));
         }
         catch (Exception ex)
         {
@@ -75,6 +79,12 @@ public partial class MainViewModel : ObservableObject
         }
     }
     CancellationTokenSource? _cts;
+
+    [RelayCommand]
+    void CopyToClipboard(string link)
+    {
+        Clipboard.Default.SetTextAsync(link);
+    }
 
     [RelayCommand]
     async Task Start()
@@ -85,13 +95,14 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 _cts = new CancellationTokenSource();
-                var existingDocs = _repository.List();
-                if (existingDocs != null && existingDocs.Count > 0)
-                    Docs = new ObservableCollection<Doc>(existingDocs);
-                //await Task.Run(async () =>
-                //{
-                //    await NavigateUrl(baseUrl, _cts.Token);
-                //}, _cts.Token);
+               
+                await Task.Run(async () =>
+                {
+                    Console.WriteLine($"Loaded: {Items.Count}");
+                    await NavigateUrl(baseUrl, _cts.Token);
+                    Console.WriteLine($"Visited: {_urlsVisited.Count}");
+
+                }, _cts.Token);
 
             }
             catch (Exception e)
@@ -108,6 +119,16 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private void TryLoadInitialCollection()
+    {
+        var existingDocs = _repository.Docs();
+        if (existingDocs != null && existingDocs.Count > 0)
+            Docs = new ObservableCollection<Doc>(existingDocs);
+        var existingItems = _repository.Items();
+        if (existingItems != null && existingItems.Count > 0)
+            Items = new ObservableCollection<ItemScrapped>(existingItems);
+    }
+
     async Task NavigateUrl(string url, CancellationToken cancellationToken = default)
     {
 
@@ -118,18 +139,25 @@ public partial class MainViewModel : ObservableObject
 
         System.Diagnostics.Debug.WriteLine($"Visiting {url}");
 
+  
         //  Url = url;
         _urlsVisited.Add(url);
 
         var html = string.Empty;
+    
         try
         {
+            if (Items.FirstOrDefault(x => x.Url == url) != null)
+            {
+                System.Diagnostics.Debug.WriteLine("URL already exists on database");
+            }
             if (url.EndsWith(".pdf"))
             {
-                await LookPdf(url);
-                return;
+                await Task.Run(async () => await LookPdf(url), cancellationToken);
             }
-            html = await DownloadHtml(url);
+            html = await Task.Run(async () => await DownloadHtml(url), cancellationToken);
+            RegisterItem(url);
+
         }
         catch (Exception e)
         {
@@ -153,11 +181,37 @@ public partial class MainViewModel : ObservableObject
                     {
                         continue;
                     }
-                    Items?.Add(href);
-                    await Task.Run(() => NavigateUrl(absoluteUrl, cancellationToken), cancellationToken);
+
+                    await Task.Run(async () => await NavigateUrl(absoluteUrl, cancellationToken), cancellationToken);
                 }
             }
         }
+    }
+
+    void RegisterItem(string url)
+    {
+        string filePath = GetFilePathForUrl(url);
+        var item = new ItemScrapped
+        {
+            Url = url,
+            DateScrapped = DateTime.Now,
+            FilePath = filePath,
+        };
+        Items?.Add(item);
+        _repository.Create(item);
+    }
+
+    static string GetFilePathForUrl(string url)
+    {
+        string cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var filePath = $"{cacheDir}/htmlpages/{GetDeterministicHashCode(url)}.html";
+        if (url.EndsWith(".pdf"))
+        {
+            var href = url.Replace(biblioUrl, "");
+            filePath = $"{cacheDir}{href}";
+        }
+
+        return filePath;
     }
 
     bool ValidateUrl(string absoluteUrl)
@@ -206,58 +260,35 @@ public partial class MainViewModel : ObservableObject
         return relativeUrl;
     }
 
-    void SerializeObject(object docs, string name)
+    async Task LookPdf(string url)
     {
-        var json = JsonSerializer.Serialize(docs);
-        Console.WriteLine(json);
-        string cacheDir = FileSystem.Current.AppDataDirectory;
-        var filePath = $"{cacheDir}/{name}.json";
-        var stream = Encoding.UTF8.GetBytes(json);
-        File.WriteAllBytes(filePath, stream);
-    }
-
-    T DeserializeObject<T>(string name)
-    {
-        string cacheDir = FileSystem.Current.AppDataDirectory;
-        var filePath = $"{cacheDir}/{name}.json";
-        if (!File.Exists(filePath))
+        Console.WriteLine("Link: " + url);
+        if (url.EndsWith(".pdf"))
         {
-            return default;
-        }
-        var stream = File.ReadAllBytes(filePath);
-        var json = Encoding.UTF8.GetString(stream);
-        return JsonSerializer.Deserialize<T>(json);
-    }
+            var filePath = GetFilePathForUrl(url);
 
-    async Task LookPdf(string href)
-    {
-        Console.WriteLine("Link: " + href);
-        if (href.EndsWith(".pdf"))
-        {
-            string cacheDir = FileSystem.Current.AppDataDirectory;
-            var filePath = $"{cacheDir}/{href}";
-
-            var pdfUrl = $"{biblioUrl}{href}";
-
-            if (Docs.FirstOrDefault(x => x.Url == Url) != null)
+            if (Docs.FirstOrDefault(x => x.Url == url) != null)
             {
                 System.Diagnostics.Debug.WriteLine("Doc already exists on database");
                 return;
             }
 
-            // await DownloadAndSavePdf(pdfUrl, filePath);
-            var filename = Path.GetFileName(filePath);
-            string pattern = @"(\d+)_(\d+)_(\d+)_(\d+)_[a-f0-9]+\.pdf";
-            Match match = Regex.Match(filename, pattern);
 
+          //  await DownloadAndSavePdf(url, filePath);
+            var filename = Path.GetFileName(filePath);
+            
             var doc = new Doc
             {
-                Id = GetDeterministicHashCode(pdfUrl),
-                Url = pdfUrl,
+                Id = GetDeterministicHashCode(url),
+                Url = url,
                 Path = filePath,
                 Publication = "Defesa de Espinho",
-                ScrapDate = DateTime.Now
+                ScrapDate = DateTime.Now,
+                FileName = filename
             };
+
+            string pattern = @"(\d+)_(\d+)_(\d+)_(\d+)_[a-f0-9]+\.pdf";
+            Match match = Regex.Match(filename, pattern);
 
             if (match.Success)
             {
@@ -283,37 +314,34 @@ public partial class MainViewModel : ObservableObject
 
         Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
-        File.WriteAllBytes(filePath, stream);
+        await File.WriteAllBytesAsync(filePath, stream);
     }
 
-    [ObservableProperty]
-    ObservableCollection<Doc>? _docs = new ObservableCollection<Doc>();
 
     static async Task<string> DownloadHtml(string url)
     {
-        string cacheDir = FileSystem.Current.AppDataDirectory;
-        var htmlFilePath = $"{cacheDir}/{GetDeterministicHashCode(url)}.html";
+        var htmlFilePath = GetFilePathForUrl(url);
         if (File.Exists(htmlFilePath))
         {
-            return Encoding.UTF8.GetString(File.ReadAllBytes(htmlFilePath));
+            // Returl the HTML content of the webpage from disk
+            var html = await File.ReadAllTextAsync(htmlFilePath);
+            return html;
         }
 
-        using (HttpClient client = new HttpClient())
+        using HttpClient client = new();
+        try
         {
-            try
-            {
-                // Download the HTML content of the webpage
-                var html = await client.GetStringAsync(url);
+            // Download the HTML content of the webpage
+            var html = await client.GetStringAsync(url);
 
-                File.WriteAllBytes(htmlFilePath, Encoding.UTF8.GetBytes(html));
-                return html; ;
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                // Handle 404 Not Found error
-                Console.WriteLine("Page not found: " + url);
-                return string.Empty;
-            }
+            await File.WriteAllTextAsync(htmlFilePath, html);
+            return html; ;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Handle 404 Not Found error
+            Console.WriteLine("Page not found: " + url);
+            return string.Empty;
         }
     }
 
@@ -343,5 +371,28 @@ public partial class MainViewModel : ObservableObject
             // Download the HTML content of the webpage
             return await client.GetByteArrayAsync(url);
         }
+    }
+
+    void SerializeObject(object docs, string name)
+    {
+        var json = JsonSerializer.Serialize(docs);
+        Console.WriteLine(json);
+        string cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var filePath = $"{cacheDir}/{name}.json";
+        var stream = Encoding.UTF8.GetBytes(json);
+        File.WriteAllBytes(filePath, stream);
+    }
+
+    T DeserializeObject<T>(string name)
+    {
+        string cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var filePath = $"{cacheDir}/{name}.json";
+        if (!File.Exists(filePath))
+        {
+            return default;
+        }
+        var stream = File.ReadAllBytes(filePath);
+        var json = Encoding.UTF8.GetString(stream);
+        return JsonSerializer.Deserialize<T>(json);
     }
 }
