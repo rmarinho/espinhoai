@@ -2,7 +2,7 @@ using System;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 class Program : MauiApplication
 {

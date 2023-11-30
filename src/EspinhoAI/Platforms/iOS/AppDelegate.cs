@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate

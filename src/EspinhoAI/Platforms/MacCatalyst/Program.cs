@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 public class Program
 {

@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 [Application]
 public class MainApplication : MauiApplication

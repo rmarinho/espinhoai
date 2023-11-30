@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 public static class MauiProgram
 {

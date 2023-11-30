@@ -6,9 +6,10 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EspinhoAI.Models;
 using HtmlAgilityPack;
 
-namespace espinhoai;
+namespace EspinhoAI;
 
 public partial class MainViewModel : ObservableObject
 {
@@ -20,8 +21,8 @@ public partial class MainViewModel : ObservableObject
     {
         Items = new ObservableCollection<string>();
         Url = "https://bibliotecamunicipal.espinho.pt/pt/documentacao/defesa-de-espinho/2023/";
-       Items =  DeserializeObject<ObservableCollection<string>>(nameof(Items)) ?? new ObservableCollection<string>();
-       Docs =  DeserializeObject<ObservableCollection<Doc>>(nameof(Docs)) ?? new ObservableCollection<Doc>();
+        Items = DeserializeObject<ObservableCollection<string>>(nameof(Items)) ?? new ObservableCollection<string>();
+        Docs = DeserializeObject<ObservableCollection<Doc>>(nameof(Docs)) ?? new ObservableCollection<Doc>();
     }
 
     public string? Url
@@ -77,11 +78,13 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var baseUrl = Url;
-            try {  
+            try
+            {
                 _cts = new CancellationTokenSource();
-                await Task.Run( async () =>  await NavigateUrl(baseUrl, _cts.Token), _cts.Token); 
-            } 
-            catch (Exception e) { 
+                await Task.Run(async () => await NavigateUrl(baseUrl, _cts.Token), _cts.Token);
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine(e.Message);
             }
 
@@ -96,33 +99,35 @@ public partial class MainViewModel : ObservableObject
 
     async Task NavigateUrl(string url, CancellationToken cancellationToken = default)
     {
-        if(!ValidateUrl(url))
+        if (!ValidateUrl(url))
         {
             return;
         }
-        
-      //  Url = url;
+
+        //  Url = url;
         _urlsVisited.Add(url);
-        
+
         var html = string.Empty;
-        try { 
-            if(url.EndsWith(".pdf"))
+        try
+        {
+            if (url.EndsWith(".pdf"))
             {
                 await LookPdf(url);
                 return;
             }
             html = await DownloadHtml(url);
-        } 
-        catch (Exception e) { 
+        }
+        catch (Exception e)
+        {
             Console.WriteLine(e.Message);
-            return ;
+            return;
         }
         if (!string.IsNullOrEmpty(html))
         {
             var document = new HtmlDocument();
             document.LoadHtml(html);
             // Now you can use XPath or LINQ to navigate and extract data from the HTML
-             var nodes = document.DocumentNode.SelectNodes("//a[@href]"); // Example: get all anchor tags with href attribute
+            var nodes = document.DocumentNode.SelectNodes("//a[@href]"); // Example: get all anchor tags with href attribute
 
             if (nodes != null)
             {
@@ -130,12 +135,12 @@ public partial class MainViewModel : ObservableObject
                 {
                     var href = node.GetAttributeValue("href", "");
                     var absoluteUrl = GetAbsoluteUrl(url, href);
-                    if(!ValidateUrl(absoluteUrl))
+                    if (!ValidateUrl(absoluteUrl))
                     {
                         continue;
                     }
                     Items?.Add(href);
-                    await Task.Run( () => NavigateUrl(absoluteUrl, cancellationToken), cancellationToken);
+                    await Task.Run(() => NavigateUrl(absoluteUrl, cancellationToken), cancellationToken);
                 }
             }
         }
@@ -171,7 +176,7 @@ public partial class MainViewModel : ObservableObject
         {
             return true;
         }
-        else 
+        else
         {
             return false;
         }
@@ -201,7 +206,7 @@ public partial class MainViewModel : ObservableObject
     {
         string cacheDir = FileSystem.Current.AppDataDirectory;
         var filePath = $"{cacheDir}/{name}.json";
-        if(!File.Exists(filePath))
+        if (!File.Exists(filePath))
         {
             return default;
         }
@@ -226,12 +231,12 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-          // await DownloadAndSavePdf(pdfUrl, filePath);
+            // await DownloadAndSavePdf(pdfUrl, filePath);
 
             string pattern = @"(\d+)_(\d+)_(\d+)_(\d+)_[a-f0-9]+\.pdf";
             Match match = Regex.Match(Path.GetFileName(filePath), pattern);
 
-            var doc  = new Doc
+            var doc = new Doc
             {
                 Id = GetDeterministicHashCode(pdfUrl),
                 Url = pdfUrl,
@@ -239,17 +244,17 @@ public partial class MainViewModel : ObservableObject
                 Publication = "Defesa de Espinho",
                 ScrapDate = DateTime.Now
             };
-            
+
             if (match.Success)
             {
-                 int year = Convert.ToInt32(match.Groups[4].Value);
+                int year = Convert.ToInt32(match.Groups[4].Value);
                 int month = Convert.ToInt32(match.Groups[3].Value);
                 int day = Convert.ToInt32(match.Groups[2].Value);
                 int id = Convert.ToInt32(match.Groups[1].Value);
                 Console.WriteLine($"YEar: {year}, Month: {month}, Day: {day}");
-              //  doc.Year = year.ToString();
+                //  doc.Year = year.ToString();
             }
-            
+
             Docs?.Add(doc);
         }
     }
@@ -270,9 +275,9 @@ public partial class MainViewModel : ObservableObject
     {
         string cacheDir = FileSystem.Current.AppDataDirectory;
         var htmlFilePath = $"{cacheDir}/{GetDeterministicHashCode(url)}.html";
-        if(File.Exists(htmlFilePath))
+        if (File.Exists(htmlFilePath))
         {
-            return  Encoding.UTF8.GetString(File.ReadAllBytes(htmlFilePath));
+            return Encoding.UTF8.GetString(File.ReadAllBytes(htmlFilePath));
         }
 
         using (HttpClient client = new HttpClient())
@@ -280,10 +285,10 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 // Download the HTML content of the webpage
-                var html =  await client.GetStringAsync(url);
+                var html = await client.GetStringAsync(url);
 
-                  File.WriteAllBytes(htmlFilePath, Encoding.UTF8.GetBytes(html));
-                  return html;;
+                File.WriteAllBytes(htmlFilePath, Encoding.UTF8.GetBytes(html));
+                return html; ;
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
@@ -295,23 +300,23 @@ public partial class MainViewModel : ObservableObject
     }
 
     static int GetDeterministicHashCode(string str)
-{
-    unchecked
     {
-        int hash1 = (5381 << 16) + 5381;
-        int hash2 = hash1;
-
-        for (int i = 0; i < str.Length; i += 2)
+        unchecked
         {
-            hash1 = ((hash1 << 5) + hash1) ^ str[i];
-            if (i == str.Length - 1)
-                break;
-            hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
-        }
+            int hash1 = (5381 << 16) + 5381;
+            int hash2 = hash1;
 
-        return hash1 + (hash2 * 1566083941);
+            for (int i = 0; i < str.Length; i += 2)
+            {
+                hash1 = ((hash1 << 5) + hash1) ^ str[i];
+                if (i == str.Length - 1)
+                    break;
+                hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
+            }
+
+            return hash1 + (hash2 * 1566083941);
+        }
     }
-}
 
     static async Task<byte[]> DownloadPdf(string url)
     {
@@ -320,15 +325,5 @@ public partial class MainViewModel : ObservableObject
             // Download the HTML content of the webpage
             return await client.GetByteArrayAsync(url);
         }
-    }
-
-    public class Doc
-    {
-        public int Id { get; set; }
-        public string Url { get; set; }
-        public string Path { get; set; }
-        public string Publication { get; set; }
-        public string Year { get; set; }
-        public DateTime ScrapDate { get; set; }
     }
 }

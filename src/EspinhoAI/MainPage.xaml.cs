@@ -1,4 +1,4 @@
-﻿namespace espinhoai;
+﻿namespace EspinhoAI;
 
 public partial class MainPage : ContentPage
 {
