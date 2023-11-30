@@ -13,6 +13,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="40"/>
         </Grid.ColumnDefinitions>
 
         <Entry Grid.Row="0" Grid.Column="0" x:Name="urlEditor" Placeholder="Enter URL" Text="{Binding Url}"/>
@@ -20,14 +21,17 @@
         <Button Grid.Row="0" Grid.Column="1" Text="Start" Command="{Binding StartCommand}"/>
         <Button Grid.Row="0" Grid.Column="2" Text="Stop" Command="{Binding StopCommand}"/>
 
+        <Label  Grid.Row="0" Grid.Column="3" Text="{Binding ScrappedCount}" HeightRequest="30" FontSize="Header" Background="Yellow"/>
         <WebView Grid.Row="1" Grid.Column="0" x:Name="webView" Source="{Binding WebUrl}"/>
 
         <CollectionView Grid.Row="1" Grid.Column="1"
                         ItemsSource="{Binding Items}"
                         SelectionMode="Single"
-                        
-                        SelectedItem="{Binding CurrentItem}">
-            <!-- Define your CollectionView's item template here -->
+                        SelectedItem="{Binding CurrentItem}"
+                        >
+            <CollectionView.Header>
+                <Label Text="{Binding ScrappedCount}" HeightRequest="30" FontSize="Header" Background="Yellow"/>
+            </CollectionView.Header>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Border StrokeShape="Rectangle" StrokeThickness="1" Stroke="Red" Padding="5">
@@ -62,20 +66,31 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <CollectionView Grid.Row="1" Grid.Column="2" ItemsSource="{Binding Docs}">
+        <CollectionView Grid.Row="1" Grid.Column="2"
+                        Grid.ColumnSpan="2"
+                        ItemsSource="{Binding Docs}"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding CurrentDoc}">
             <!-- Define your CollectionView's item template here -->
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Text="{Binding Publication}"/>
-                        <Label Text="{Binding ScrapDate}" Grid.Column="1"/>
-                        <Label Text="{Binding Url}" Grid.Column="2"/>
-                    </Grid>
+                    <Border StrokeShape="Rectangle" StrokeThickness="1" Stroke="Blue" Padding="5">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Text="{Binding Url}" Grid.ColumnSpan="3" LineBreakMode="WordWrap"/>
+                            <Label Text="{Binding Publication}" Grid.Column="0" Grid.Row="1"/>
+                            <Label Text="{Binding ScrapDate}" Grid.Column="1" Grid.Row="1"/>
+
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

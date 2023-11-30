@@ -78,4 +78,10 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\EspinhoAI.Models\EspinhoAI.Models.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="Helpers\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Helpers\" />
+	</ItemGroup>
 </Project>

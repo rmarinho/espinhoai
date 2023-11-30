@@ -41,6 +41,23 @@ public partial class MainViewModel : ObservableObject
 
     public string? WebUrl => Url;
 
+    Doc? _currentDoc;
+    public Doc? CurrentDoc
+    {
+        get { return _currentDoc; }
+        set
+        {
+            if (_currentDoc != value)
+            {
+                SetProperty(ref _currentDoc, value);
+                if (CurrentDoc != null)
+                {
+                    Url = CurrentDoc.Path;
+                }
+            }
+        }
+    }
+
     ItemScrapped? _currentItem;
     public ItemScrapped? CurrentItem
     {
@@ -59,6 +76,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty]
+    int _scrappedCount = 0;
+
+   [ObservableProperty]
     ObservableCollection<ItemScrapped>? _items = new ObservableCollection<ItemScrapped>();
 
     [ObservableProperty]
@@ -70,8 +90,6 @@ public partial class MainViewModel : ObservableObject
         try
         {
             _cts?.Cancel();
-            //SerializeObject(Docs, nameof(Docs));
-            //SerializeObject(Items, nameof(Items));
         }
         catch (Exception ex)
         {
@@ -119,7 +137,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void TryLoadInitialCollection()
+    void TryLoadInitialCollection()
     {
         var existingDocs = _repository.Docs();
         if (existingDocs != null && existingDocs.Count > 0)
@@ -127,36 +145,40 @@ public partial class MainViewModel : ObservableObject
         var existingItems = _repository.Items();
         if (existingItems != null && existingItems.Count > 0)
             Items = new ObservableCollection<ItemScrapped>(existingItems);
+
+        ScrappedCount = Items.Count();
     }
 
     async Task NavigateUrl(string url, CancellationToken cancellationToken = default)
     {
-
         if (!ValidateUrl(url))
         {
             return;
         }
 
         System.Diagnostics.Debug.WriteLine($"Visiting {url}");
-
   
-        //  Url = url;
         _urlsVisited.Add(url);
 
         var html = string.Empty;
     
         try
         {
-            if (Items.FirstOrDefault(x => x.Url == url) != null)
+            bool exists = Items.FirstOrDefault(x => x.Url == url) != null;
+            if (!exists)
             {
                 System.Diagnostics.Debug.WriteLine("URL already exists on database");
             }
             if (url.EndsWith(".pdf"))
             {
-                await Task.Run(async () => await LookPdf(url), cancellationToken);
+                await LookPdf(url);
             }
-            html = await Task.Run(async () => await DownloadHtml(url), cancellationToken);
-            RegisterItem(url);
+            html = await DownloadHtml(url);
+            if(!exists)
+            {
+                RegisterItem(url);
+            }
+           
 
         }
         catch (Exception e)
@@ -199,6 +221,7 @@ public partial class MainViewModel : ObservableObject
         };
         Items?.Add(item);
         _repository.Create(item);
+        ScrappedCount = Items.Count();
     }
 
     static string GetFilePathForUrl(string url)
@@ -216,6 +239,10 @@ public partial class MainViewModel : ObservableObject
 
     bool ValidateUrl(string absoluteUrl)
     {
+        if(absoluteUrl.EndsWith("#"))
+        {
+            absoluteUrl = absoluteUrl.Replace("#", "");
+        }
         if (_urlsVisited.Contains(absoluteUrl))
         {
             return false;
@@ -248,10 +275,9 @@ public partial class MainViewModel : ObservableObject
         {
             return false;
         }
-
     }
 
-    string GetAbsoluteUrl(string baseUrl, string relativeUrl)
+    static string GetAbsoluteUrl(string baseUrl, string relativeUrl)
     {
         if (Uri.TryCreate(new Uri(baseUrl), relativeUrl, out var absoluteUri))
         {
@@ -273,8 +299,7 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-
-          //  await DownloadAndSavePdf(url, filePath);
+            await DownloadAndSavePdf(url, filePath);
             var filename = Path.GetFileName(filePath);
             
             var doc = new Doc
