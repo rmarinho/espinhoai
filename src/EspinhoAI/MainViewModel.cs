@@ -346,6 +346,9 @@ public partial class MainViewModel : ObservableObject
     static async Task<string> DownloadHtml(string url)
     {
         var htmlFilePath = GetFilePathForUrl(url);
+        var filename = Path.GetFileName(htmlFilePath);
+        if(!Path.Exists(htmlFilePath))
+            Directory.CreateDirectory(htmlFilePath.Replace(filename,""));
         if (File.Exists(htmlFilePath))
         {
             // Returl the HTML content of the webpage from disk
@@ -358,7 +361,7 @@ public partial class MainViewModel : ObservableObject
         {
             // Download the HTML content of the webpage
             var html = await client.GetStringAsync(url);
-
+          
             await File.WriteAllTextAsync(htmlFilePath, html);
             return html; ;
         }
