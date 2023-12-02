@@ -9,6 +9,7 @@ using Azure.AI.FormRecognizer.DocumentAnalysis;
 using System;
 using iText.Commons.Utils;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace EspinhoAI
 {
@@ -116,11 +117,41 @@ namespace EspinhoAI
             //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
 
             //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
-            var immm = PdfImage.ToString().Replace("File:", "").Trim();
-            ImageProcessingResult? image = null;
+            var imageFilePath = PdfImage.ToString().Replace("File:", "").Trim();
+
+            var pathFolder = Path.GetDirectoryName(imageFilePath);
+            var filename = Path.GetFileNameWithoutExtension(imageFilePath);
+            string finalPathFile = Path.Combine(pathFolder, $"{filename}.json");    
+            
+            AnalyzeResult? result = null;
+            if(File.Exists(finalPathFile))
+            {
+                var json = await File.ReadAllTextAsync(finalPathFile);
+                result = JsonSerializer.Deserialize<AnalyzeResult>(json);
+            }
+            else
+            {
+                result =  await AnalyzeDocument(client, imageFilePath);
+                if (result == null)
+                {
+                    Console.WriteLine($"Document analysis failed.");
+                    return;
+                }
+                Console.WriteLine("Saving result to 'result.json'...");
+                //Save the result to a JSON file
+                await File.WriteAllTextAsync(finalPathFile, result.ToJson());
+            }
+            if(result == null)
+                throw new Exception("result is null");
+            ProcessResult(result);
+        }
+
+        async Task<AnalyzeResult?> AnalyzeDocument(DocumentAnalysisClient client, string imageFilePath)
+        {
+           ImageProcessingResult? image = null;
             try
             {
-                var b  = await File.ReadAllBytesAsync(immm);
+                var b  = await File.ReadAllBytesAsync(imageFilePath);
 
                 image = new  ImageProcessingResult(b);
             }
@@ -130,11 +161,17 @@ namespace EspinhoAI
             }
 
             if (image?.Image == null)
-                return;
+                return null;
 
             AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image.Image));
             AnalyzeResult result = operation.Value;
 
+            
+            return result;
+        }
+
+        void ProcessResult(AnalyzeResult result)
+        {
             foreach (DocumentPage page in result.Pages)
             {
                 Console.WriteLine($"Document Page {page.PageNumber} has {page.Lines.Count} line(s), {page.Words.Count} word(s),");
@@ -159,7 +196,6 @@ namespace EspinhoAI
                 Console.WriteLine($"paragraph.Content {paragraph.Content}");
                 for (int j = 0; j < paragraph.BoundingRegions.Count; j++)
                 {
-                //    Console.WriteLine($"      Point {j} => X: {paragraph.BoundingRegions[j].BoundingPolygon}, Y: {paragraph.BoundingRegions[j].BoundingPolygon}");
                 }
             }
 
@@ -188,10 +224,15 @@ namespace EspinhoAI
                 Console.WriteLine($"  Found language with locale'{language.Locale}' with confidence {language.Confidence}.");
             }
 
-            
-
         }
+    }
 
+    public static class ImageExtensions
+    {
+        public static string ToJson(this AnalyzeResult result)
+        {
+            return JsonSerializer.Serialize(result);
+        }
     }
 
 }
