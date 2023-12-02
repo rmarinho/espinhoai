@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="EspinhoAI.ExtractPage"
+             Title="ExtractPage">
+    <Grid RowSpacing="0" ColumnSpacing="0">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <Label Text="{Binding PdfSource}"/>
+        <WebView  Source="{Binding PdfSource}" Grid.Column="0" Grid.Row="1" />
+        <CollectionView ItemsSource="{Binding Images}" Grid.Column="1" Grid.Row="1"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding PdfImage, Mode=TwoWay}">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout  Orientation="Vertical" VerticalItemSpacing="10" HorizontalItemSpacing="10" Span="2" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="10" WidthRequest="200" StrokeShape="Rectangle" StrokeThickness="2" Stroke="Azure">
+                        <Image Source="{Binding .}" Margin="5" BackgroundColor="Pink"  />
+                    </Border>
+                </DataTemplate>
+
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+        <Image Source="{Binding PdfImage}" Grid.Column="2" Grid.Row="1"/>
+        <Button Text="Get images" Command="{Binding GetImageFromPdfCommand}" Grid.Column="1" Grid.Row="2"  />
+        <Button Text="Get text" Command="{Binding GetTextFromImageCommand}" Grid.Column="2" Grid.Row="2" />
+    </Grid>
+</ContentPage>

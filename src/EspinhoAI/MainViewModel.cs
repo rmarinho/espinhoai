@@ -8,6 +8,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HtmlAgilityPack;
 using EspinhoAI.Models;
+using System.Collections.Generic;
+using System.Threading;
+using System;
 
 namespace EspinhoAI;
 
