@@ -3,8 +3,12 @@ using EspinhoAI.Models;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
-using System.IO;
 using System.Linq;
+using Azure;
+using Azure.AI.FormRecognizer.DocumentAnalysis;
+using System;
+using iText.Commons.Utils;
+using System.Threading.Tasks;
 
 namespace EspinhoAI
 {
@@ -100,8 +104,91 @@ namespace EspinhoAI
         }
 
         [RelayCommand]
-        void GetTextFromImage()
+        async Task GetTextFromImage()
         {
+            //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
+            string key = "";
+            string endpoint = "https://paper-ocr.cognitiveservices.azure.com/";
+            AzureKeyCredential credential = new AzureKeyCredential(key);
+            DocumentAnalysisClient client = new DocumentAnalysisClient(new Uri(endpoint), credential);
+
+            //sample document
+            //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
+
+            //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
+            var immm = PdfImage.ToString().Replace("File:", "").Trim();
+            ImageProcessingResult? image = null;
+            try
+            {
+                var b  = await File.ReadAllBytesAsync(immm);
+
+                image = new  ImageProcessingResult(b);
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (image?.Image == null)
+                return;
+
+            AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image.Image));
+            AnalyzeResult result = operation.Value;
+
+            foreach (DocumentPage page in result.Pages)
+            {
+                Console.WriteLine($"Document Page {page.PageNumber} has {page.Lines.Count} line(s), {page.Words.Count} word(s),");
+                Console.WriteLine($"and {page.SelectionMarks.Count} selection mark(s).");
+
+                for (int i = 0; i < page.Lines.Count; i++)
+                {
+                    DocumentLine line = page.Lines[i];
+                    Console.WriteLine($"  Line {i} has content: '{line.Content}'.");
+
+                    Console.WriteLine($"    Its bounding polygon (points ordered clockwise):");
+
+                    for (int j = 0; j < line.BoundingPolygon.Count; j++)
+                    {
+                        Console.WriteLine($"      Point {j} => X: {line.BoundingPolygon[j].X}, Y: {line.BoundingPolygon[j].Y}");
+                    }
+                }
+            }
+
+            foreach (DocumentParagraph paragraph in result.Paragraphs)
+            {
+                Console.WriteLine($"paragraph.Content {paragraph.Content}");
+                for (int j = 0; j < paragraph.BoundingRegions.Count; j++)
+                {
+                //    Console.WriteLine($"      Point {j} => X: {paragraph.BoundingRegions[j].BoundingPolygon}, Y: {paragraph.BoundingRegions[j].BoundingPolygon}");
+                }
+            }
+
+            foreach (DocumentStyle style in result.Styles)
+            {
+                // Check the style and style confidence to see if text is handwritten.
+                // Note that value '0.8' is used as an example.
+
+                bool isHandwritten = style.IsHandwritten.HasValue && style.IsHandwritten == true;
+
+                if (isHandwritten && style.Confidence > 0.8)
+                {
+                    Console.WriteLine($"Handwritten content found:");
+
+                    foreach (DocumentSpan span in style.Spans)
+                    {
+                        Console.WriteLine($"  Content: {result.Content.Substring(span.Index, span.Length)}");
+                    }
+                }
+            }
+
+            Console.WriteLine("Detected languages:");
+
+            foreach (DocumentLanguage language in result.Languages)
+            {
+                Console.WriteLine($"  Found language with locale'{language.Locale}' with confidence {language.Confidence}.");
+            }
+
+            
 
         }
 
