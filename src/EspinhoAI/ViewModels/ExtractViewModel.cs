@@ -10,6 +10,7 @@ using System;
 using iText.Commons.Utils;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.IO;
 
 namespace EspinhoAI
 {
@@ -108,10 +109,7 @@ namespace EspinhoAI
         async Task GetTextFromImage()
         {
             //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
-            string key = "";
-            string endpoint = "https://paper-ocr.cognitiveservices.azure.com/";
-            AzureKeyCredential credential = new AzureKeyCredential(key);
-            DocumentAnalysisClient client = new DocumentAnalysisClient(new Uri(endpoint), credential);
+          
 
             //sample document
             //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
@@ -131,7 +129,7 @@ namespace EspinhoAI
             }
             else
             {
-                result =  await AnalyzeDocument(client, imageFilePath);
+                result =  await AnalyzeDocument(imageFilePath);
                 if (result == null)
                 {
                     Console.WriteLine($"Document analysis failed.");
@@ -146,9 +144,13 @@ namespace EspinhoAI
             ProcessResult(result);
         }
 
-        async Task<AnalyzeResult?> AnalyzeDocument(DocumentAnalysisClient client, string imageFilePath)
+        async Task<AnalyzeResult?> AnalyzeDocument(string imageFilePath)
         {
-           ImageProcessingResult? image = null;
+            string key = "";
+            string endpoint = "https://paper-ocr.cognitiveservices.azure.com/";
+            AzureKeyCredential credential = new AzureKeyCredential(key);
+            DocumentAnalysisClient client = new DocumentAnalysisClient(new Uri(endpoint), credential);
+            ImageProcessingResult? image = null;
             try
             {
                 var b  = await File.ReadAllBytesAsync(imageFilePath);

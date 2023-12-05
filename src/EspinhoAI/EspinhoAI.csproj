@@ -72,8 +72,14 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <None Remove="Helpers\" />
+	  <None Remove="ViewModels\" />
+	  <None Remove="appsettings.json" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Helpers\" />
+	  <Folder Include="ViewModels\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <BundleResource Include="appsettings.json" />
 	</ItemGroup>
 </Project>
