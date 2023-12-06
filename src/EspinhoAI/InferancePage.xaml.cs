@@ -16,11 +16,11 @@ public partial class InferancePage : ContentPage
     // IVisionSample _ultraface;
 
     // IVisionSample Mobilenet => _mobilenet ??= new MobilenetSample();
-    public InferancePage()
+    public InferancePage(ExtractViewModel viewModel)
 	{
 		InitializeComponent();
 
-        BindingContext = new ExtractViewModel();
+        BindingContext = viewModel;
 
         // See:
         // ONNX Runtime Execution Providers: https://onnxruntime.ai/docs/execution-providers/

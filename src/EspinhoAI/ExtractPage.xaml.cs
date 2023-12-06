@@ -4,9 +4,9 @@ namespace EspinhoAI;
 
 public partial class ExtractPage : ContentPage
 {
-	public ExtractPage()
+	public ExtractPage(ExtractViewModel viewModel)
 	{
 		InitializeComponent();
-		BindingContext = new ExtractViewModel();
+		BindingContext = viewModel;
 	}
 }

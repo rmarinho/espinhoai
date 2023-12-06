@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="EspinhoAI.ExtractPage"
              Title="ExtractPage">
-    <Grid RowSpacing="0" ColumnSpacing="0">
+    <Grid RowSpacing="10" ColumnSpacing="20">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="50" />
@@ -18,7 +18,7 @@
         </Grid.ColumnDefinitions>
 
         <Label Text="{Binding PdfSource}"/>
-        <WebView  Source="{Binding PdfSource}" Grid.Column="0" Grid.Row="1" />
+        <WebView  Source="{Binding PdfSource}" Grid.Column="0" Grid.Row="1" Margin="50" />
         <CollectionView ItemsSource="{Binding Images}" Grid.Column="1" Grid.Row="1"
                         SelectionMode="Single"
                         SelectedItem="{Binding PdfImage, Mode=TwoWay}">

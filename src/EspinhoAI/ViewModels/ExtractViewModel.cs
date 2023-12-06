@@ -11,6 +11,7 @@ using iText.Commons.Utils;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
+using Microsoft.Extensions.Configuration;
 
 namespace EspinhoAI
 {
@@ -20,9 +21,11 @@ namespace EspinhoAI
         readonly Repository _repository;
 
         const string biblioUrl = "https://bibliotecamunicipal.espinho.pt";
+        IConfiguration _config;
 
-        public ExtractViewModel()
+        public ExtractViewModel(IConfiguration config)
         {
+            _config = config;
             //  Url = "https://bibliotecamunicipal.espinho.pt/pt/documentacao/defesa-de-espinho/2023/";
             _repository = new Repository();
             Images = new ObservableCollection<ImageSource>();
@@ -108,13 +111,6 @@ namespace EspinhoAI
         [RelayCommand]
         async Task GetTextFromImage()
         {
-            //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
-          
-
-            //sample document
-            //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
-
-            //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
             var imageFilePath = PdfImage.ToString().Replace("File:", "").Trim();
 
             var pathFolder = Path.GetDirectoryName(imageFilePath);
@@ -146,8 +142,12 @@ namespace EspinhoAI
 
         async Task<AnalyzeResult?> AnalyzeDocument(string imageFilePath)
         {
-            string key = "";
-            string endpoint = "https://paper-ocr.cognitiveservices.azure.com/";
+            var settings = _config.GetRequiredSection("Settings").Get<Settings>();
+            string? key = settings?.Azure?.Key;
+            string? endpoint = settings?.Azure?.Endpoint;
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentNullException(nameof(key));
+
             AzureKeyCredential credential = new AzureKeyCredential(key);
             DocumentAnalysisClient client = new DocumentAnalysisClient(new Uri(endpoint), credential);
             ImageProcessingResult? image = null;
@@ -164,6 +164,13 @@ namespace EspinhoAI
 
             if (image?.Image == null)
                 return null;
+
+            //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
+
+            //sample document
+            //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
+
+            //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
 
             AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image.Image));
             AnalyzeResult result = operation.Value;
