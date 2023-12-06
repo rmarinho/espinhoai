@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace EspinhoAI
 {
@@ -79,7 +80,10 @@ namespace EspinhoAI
         ImageSource? _pdfImage;
 
         [ObservableProperty]
-        ObservableCollection<ImageSource>? _Images;
+        ObservableCollection<ImageSource>? _images;
+
+        [ObservableProperty]
+        ObservableCollection<DocumentParagraph>? _paragraphs;
 
         [ObservableProperty]
         int _scrappedCount = 0;
@@ -112,35 +116,54 @@ namespace EspinhoAI
         async Task GetTextFromImage()
         {
             var imageFilePath = PdfImage.ToString().Replace("File:", "").Trim();
-
+        
             var pathFolder = Path.GetDirectoryName(imageFilePath);
             var filename = Path.GetFileNameWithoutExtension(imageFilePath);
-            string finalPathFile = Path.Combine(pathFolder, $"{filename}.json");    
-            
+            string finalPathFile = Path.Combine(pathFolder, $"{filename}.json");
+
             AnalyzeResult? result = null;
-            if(File.Exists(finalPathFile))
+            if (File.Exists(finalPathFile))
             {
                 var json = await File.ReadAllTextAsync(finalPathFile);
-                result = JsonSerializer.Deserialize<AnalyzeResult>(json);
+                try
+                {
+                    result = ToAnalyzeResult(json);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error getting result from file {ex.Message}");
+                }
             }
             else
             {
-                result =  await AnalyzeDocument(imageFilePath);
-                if (result == null)
+               var resultc = await AnalyzeDocument(imageFilePath);
+                if (resultc.Item1 == null)
                 {
                     Console.WriteLine($"Document analysis failed.");
                     return;
                 }
+                result = resultc.Item1;
                 Console.WriteLine("Saving result to 'result.json'...");
                 //Save the result to a JSON file
-                await File.WriteAllTextAsync(finalPathFile, result.ToJson());
+                await File.WriteAllTextAsync(finalPathFile, resultc.Item2);
             }
-            if(result == null)
+            if (result == null)
                 throw new Exception("result is null");
             ProcessResult(result);
         }
 
-        async Task<AnalyzeResult?> AnalyzeDocument(string imageFilePath)
+        static AnalyzeResult? ToAnalyzeResult(string json)
+        {
+
+            var jsonElement = JsonDocument.Parse(json).RootElement;
+            var jsonElementAnalyzeResult = jsonElement.GetProperty("analyzeResult");
+            
+            var methodInfo = typeof(AnalyzeResult).GetMethod("DeserializeAnalyzeResult", BindingFlags.NonPublic | BindingFlags.Static);
+            var analyzeResult = methodInfo?.Invoke(null, new object[] { jsonElementAnalyzeResult }) as AnalyzeResult;
+            return analyzeResult;
+        }
+
+        async Task<(AnalyzeResult?, string)> AnalyzeDocument(string imageFilePath)
         {
             var settings = _config.GetRequiredSection("Settings").Get<Settings>();
             string? key = settings?.Azure?.Key;
@@ -153,17 +176,17 @@ namespace EspinhoAI
             ImageProcessingResult? image = null;
             try
             {
-                var b  = await File.ReadAllBytesAsync(imageFilePath);
+                var b = await File.ReadAllBytesAsync(imageFilePath);
 
-                image = new  ImageProcessingResult(b);
+                image = new ImageProcessingResult(b);
             }
             catch (Exception ex)
             {
 
             }
 
-            if (image?.Image == null)
-                return null;
+            //if (image?.Image == null)
+            //    return null;
 
             //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
 
@@ -172,20 +195,31 @@ namespace EspinhoAI
 
             //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
 
-            AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image.Image));
+            AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image?.Image));
+            var response = await operation.WaitForCompletionResponseAsync();
+            var sss = response.Content.ToString();
             AnalyzeResult result = operation.Value;
 
-            
-            return result;
+
+            return (result, sss);
         }
+
+        [ObservableProperty]
+        double _pageWidth;
+
+        [ObservableProperty]
+        double _pageHeight;
 
         void ProcessResult(AnalyzeResult result)
         {
+            Console.WriteLine($"AnalyzeResult Pages:{result.Pages.Count()}");
             foreach (DocumentPage page in result.Pages)
             {
                 Console.WriteLine($"Document Page {page.PageNumber} has {page.Lines.Count} line(s), {page.Words.Count} word(s),");
+                Console.WriteLine($"Page Width: {page.Width} Height: {page.Height}");
                 Console.WriteLine($"and {page.SelectionMarks.Count} selection mark(s).");
-
+                PageWidth = (double)page.Width;
+                PageHeight = (double)page.Height;
                 for (int i = 0; i < page.Lines.Count; i++)
                 {
                     DocumentLine line = page.Lines[i];
@@ -233,6 +267,7 @@ namespace EspinhoAI
                 Console.WriteLine($"  Found language with locale'{language.Locale}' with confidence {language.Confidence}.");
             }
 
+            Paragraphs = new ObservableCollection<DocumentParagraph>(result.Paragraphs);
         }
     }
 
