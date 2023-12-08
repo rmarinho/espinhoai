@@ -4,15 +4,18 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
 using System.Linq;
-using Azure;
 using Azure.AI.FormRecognizer.DocumentAnalysis;
 using System;
-using iText.Commons.Utils;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
+using EspinhoAI.Services;
+using System.Collections.Generic;
+using Xfinium.Pdf;
+using Xfinium.Pdf.Rendering;
+using Xfinium.Pdf.Graphics;
 
 namespace EspinhoAI
 {
@@ -23,10 +26,17 @@ namespace EspinhoAI
 
         const string biblioUrl = "https://bibliotecamunicipal.espinho.pt";
         IConfiguration _config;
+        AzureService _azureService;
+        PdfTextService _pdfTextService;
+        static string pathFolder = "/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/";
 
-        public ExtractViewModel(IConfiguration config)
+
+        public ExtractViewModel(IConfiguration config, AzureService azureService, PdfTextService pdfTextService)
         {
             _config = config;
+            _azureService = azureService;
+            _pdfTextService = pdfTextService;
+
             //  Url = "https://bibliotecamunicipal.espinho.pt/pt/documentacao/defesa-de-espinho/2023/";
             _repository = new Repository();
             Images = new ObservableCollection<ImageSource>();
@@ -40,7 +50,8 @@ namespace EspinhoAI
 
                 Path = $"/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/documentos/4751_25_05_2023_42421246564706dda77f98.pdf"
             });
-            CurrentDoc = Docs.FirstOrDefault();
+            CurrentDoc = Docs.LastOrDefault();
+
         }
 
         string? _url;
@@ -71,13 +82,20 @@ namespace EspinhoAI
                     if (CurrentDoc != null)
                     {
                         Url = CurrentDoc.Path;
+                        var filename = Path.GetFileNameWithoutExtension(CurrentDoc.FileName);
+                        if (filename == null || CurrentDoc.Path == null)
+                            return;
+
+                        string folder = GetFolderForDoc(filename);
+                        LoadExistingImages(folder);
                     }
                 }
             }
         }
 
+
         [ObservableProperty]
-        ImageSource? _pdfImage;
+        ImageSource? _currentImage;
 
         [ObservableProperty]
         ObservableCollection<ImageSource>? _images;
@@ -86,37 +104,47 @@ namespace EspinhoAI
         ObservableCollection<DocumentParagraph>? _paragraphs;
 
         [ObservableProperty]
+        double _pageWidth;
+
+        [ObservableProperty]
+        double _pageHeight;
+
+        [ObservableProperty]
         int _scrappedCount = 0;
 
         [ObservableProperty]
         ObservableCollection<Doc>? _docs = new ObservableCollection<Doc>();
 
         [RelayCommand]
-        void GetImageFromPdf()
+        async Task GetTextFromPdf()
         {
             if (CurrentDoc == null)
                 return;
-            string pathFolder = "/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/";
-            var filename = Path.GetFileNameWithoutExtension(CurrentDoc.FileName);
-            string folder = Path.Combine(pathFolder, filename);
-            Directory.CreateDirectory(folder);
+            var folder = GetFolderForDoc(CurrentDoc.FileName);
+            await ExtractPdfPageText(CurrentDoc.Path, folder);
 
-            var extractor = new MyPdfImageExtractor(CurrentDoc.Path);
-            extractor.ExtractToDirectory(folder);
+        }
 
-            var images = Directory.EnumerateFiles(folder);
-            foreach (var image in images)
-            {
-                Images.Add(image);
-            }
-            PdfImage = Images.FirstOrDefault();
+        [RelayCommand]
+        async Task GetImageFromPdf()
+        {
+            if (CurrentDoc == null)
+                return;
+
+            CurrentImage = null;
+            Images.Clear();
+          
+            var folder = GetFolderForDoc(CurrentDoc.FileName);
+            await PdfToImage(CurrentDoc.Path, folder);
+
+            ExtractAllImages(CurrentDoc.Path, folder);
         }
 
         [RelayCommand]
         async Task GetTextFromImage()
         {
-            var imageFilePath = PdfImage.ToString().Replace("File:", "").Trim();
-        
+            var imageFilePath = CurrentImage.ToString().Replace("File:", "").Trim();
+
             var pathFolder = Path.GetDirectoryName(imageFilePath);
             var filename = Path.GetFileNameWithoutExtension(imageFilePath);
             string finalPathFile = Path.Combine(pathFolder, $"{filename}.json");
@@ -127,7 +155,7 @@ namespace EspinhoAI
                 var json = await File.ReadAllTextAsync(finalPathFile);
                 try
                 {
-                    result = ToAnalyzeResult(json);
+                    result = json.ToAnalyzeResult();
                 }
                 catch (Exception ex)
                 {
@@ -136,43 +164,90 @@ namespace EspinhoAI
             }
             else
             {
-               var resultc = await AnalyzeDocument(imageFilePath);
-                if (resultc.Item1 == null)
+                var analyze = await AnalyzeImage(imageFilePath);
+                if (analyze.Result == null)
                 {
                     Console.WriteLine($"Document analysis failed.");
                     return;
                 }
-                result = resultc.Item1;
+                result = analyze.Result;
                 Console.WriteLine("Saving result to 'result.json'...");
                 //Save the result to a JSON file
-                await File.WriteAllTextAsync(finalPathFile, resultc.Item2);
+                await File.WriteAllTextAsync(finalPathFile, analyze.Content);
             }
             if (result == null)
                 throw new Exception("result is null");
             ProcessResult(result);
         }
 
-        static AnalyzeResult? ToAnalyzeResult(string json)
+        static string GetFolderForDoc(string fileName)
         {
-
-            var jsonElement = JsonDocument.Parse(json).RootElement;
-            var jsonElementAnalyzeResult = jsonElement.GetProperty("analyzeResult");
-            
-            var methodInfo = typeof(AnalyzeResult).GetMethod("DeserializeAnalyzeResult", BindingFlags.NonPublic | BindingFlags.Static);
-            var analyzeResult = methodInfo?.Invoke(null, new object[] { jsonElementAnalyzeResult }) as AnalyzeResult;
-            return analyzeResult;
+            string folder = Path.Combine(pathFolder, fileName);
+            Directory.CreateDirectory(folder);
+            return folder;
         }
 
-        async Task<(AnalyzeResult?, string)> AnalyzeDocument(string imageFilePath)
+        //Save each pdf page as a image
+        async Task PdfToImage(string pdfPath, string folder, double dpiX = 100, double dpiY = 100)
         {
-            var settings = _config.GetRequiredSection("Settings").Get<Settings>();
-            string? key = settings?.Azure?.Key;
-            string? endpoint = settings?.Azure?.Endpoint;
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            string xfin = Path.Combine(folder, "xfin");
+            if (Directory.Exists(folder))
+            {
+                LoadExistingImages(xfin);
+            }
+            else
+            {
+                Directory.CreateDirectory(xfin);
+                PdfFixedDocument doc = new PdfFixedDocument(pdfPath);
+                int c = 0;
+                foreach (var item in doc.Pages)
+                {
+                    c++;
+                    PdfPageRenderer renderer = new PdfPageRenderer(item);
+                    using var stream = new MemoryStream();
+                    var pageImage = renderer.ConvertPageToImage(stream, PdfPageImageFormat.Png, new PdfRendererSettings(dpiX, dpiY));
+                    await File.WriteAllBytesAsync($"{xfin}/page{c}.png", stream.ToArray());
+                }
+            }
+        }
 
-            AzureKeyCredential credential = new AzureKeyCredential(key);
-            DocumentAnalysisClient client = new DocumentAnalysisClient(new Uri(endpoint), credential);
+        void LoadExistingImages(string folder)
+        {
+            var folderToSearch = folder;
+            if (!Directory.Exists(folder))
+                return;
+            string xfin = Path.Combine(folder, "xfin");
+            if (Directory.Exists(xfin) && !folder.Contains("xfin"))
+                folderToSearch = xfin;
+            var images = Directory.EnumerateFiles(folderToSearch);
+            //fallback to previous
+            if (images.Count() == 0 && folderToSearch != folder)
+            {
+                images = Directory.EnumerateFiles(folder);
+            }
+            foreach (var image in images)
+            {
+                if(image.EndsWith(".jpg") || image.EndsWith(".png") || image.EndsWith(".jpeg"))
+                    Images.Add(image);
+            }
+            CurrentImage = Images.FirstOrDefault();
+        }
+
+        async Task ExtractPdfPageText(string pdfPath, string folder)
+        {
+            await _pdfTextService.ExtractText(pdfPath, folder);
+        }
+
+        void ExtractAllImages(string pdfPath, string folder)
+        {
+            var extractor = new MyPdfImageExtractor(pdfPath);
+            extractor.ExtractToDirectory(folder);
+
+            LoadExistingImages(folder);
+        }
+
+        async Task<(string Content, AnalyzeResult Result)> AnalyzeImage(string imageFilePath)
+        {
             ImageProcessingResult? image = null;
             try
             {
@@ -182,34 +257,13 @@ namespace EspinhoAI
             }
             catch (Exception ex)
             {
-
+                Console.WriteLine(ex.Message);
             }
 
-            //if (image?.Image == null)
-            //    return null;
-
-            //use your `key` and `endpoint` environment variables to create your `AzureKeyCredential` and `DocumentAnalysisClient` instances
-
-            //sample document
-            //  Uri fileUri = new Uri("https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/rest-api/read.png");
-
-            //  AnalyzeDocumentOperation operation = await client.AnalyzeDocumentFromUriAsync(WaitUntil.Completed, "prebuilt-read", fileUri);
-
-            AnalyzeDocumentOperation operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", new MemoryStream(image?.Image));
-            var response = await operation.WaitForCompletionResponseAsync();
-            var sss = response.Content.ToString();
-            AnalyzeResult result = operation.Value;
-
-
-            return (result, sss);
+            return await _azureService.GetAzureAnalyzeResult(image?.Image);
         }
 
-        [ObservableProperty]
-        double _pageWidth;
-
-        [ObservableProperty]
-        double _pageHeight;
-
+       
         void ProcessResult(AnalyzeResult result)
         {
             Console.WriteLine($"AnalyzeResult Pages:{result.Pages.Count()}");
@@ -276,6 +330,22 @@ namespace EspinhoAI
         public static string ToJson(this AnalyzeResult result)
         {
             return JsonSerializer.Serialize(result);
+        }
+
+        public static AnalyzeResult? ToAnalyzeResult(this string json)
+        {
+
+            var jsonElement = JsonDocument.Parse(json).RootElement;
+            var jsonElementAnalyzeResult = jsonElement.GetProperty("analyzeResult");
+
+            var methodInfo = typeof(AnalyzeResult).GetMethod("DeserializeAnalyzeResult", BindingFlags.NonPublic | BindingFlags.Static);
+            var analyzeResult = methodInfo?.Invoke(null, new object[] { jsonElementAnalyzeResult }) as AnalyzeResult;
+            return analyzeResult;
+        }
+
+        public static string ToJson(this UglyToad.PdfPig.Content.Page page)
+        {
+            return JsonSerializer.Serialize(page);
         }
     }
 

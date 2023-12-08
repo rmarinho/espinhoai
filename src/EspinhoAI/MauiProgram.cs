@@ -5,6 +5,7 @@ using Microsoft.Maui.Hosting;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using EspinhoAI.Services;
 
 namespace EspinhoAI;
 
@@ -20,6 +21,8 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
+        builder.Services.AddTransient<AzureService>();
+        builder.Services.AddTransient<PdfTextService>();
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<ExtractPage>();

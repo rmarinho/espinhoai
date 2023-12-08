@@ -1,4 +1,5 @@
-﻿using Azure.AI.FormRecognizer.DocumentAnalysis;
+﻿using System.Collections.Generic;
+using Azure.AI.FormRecognizer.DocumentAnalysis;
 using Microsoft.Maui.Controls;
 
 namespace EspinhoAI;
@@ -32,6 +33,10 @@ public partial class ExtractPage : ContentPage
     List<ParagraphAdorner> _rects;
     private void ViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == "PdfImage")
+        {
+            graphics.Drawable = null;
+        }
         if (e.PropertyName == "Paragraphs")
         {
             _rects  = new List<ParagraphAdorner>();

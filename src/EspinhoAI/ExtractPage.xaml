@@ -17,11 +17,11 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Label Text="{Binding PdfSource}"/>
+        <Label Text="{Binding PdfSource}" Grid.ColumnSpan="2" />
         <WebView  Source="{Binding PdfSource}" Grid.Column="0" Grid.Row="1" Margin="50" />
         <CollectionView ItemsSource="{Binding Images}" Grid.Column="1" Grid.Row="1"
                         SelectionMode="Single"
-                        SelectedItem="{Binding PdfImage, Mode=TwoWay}">
+                        SelectedItem="{Binding CurrentImage, Mode=TwoWay}">
             <CollectionView.ItemsLayout>
                 <GridItemsLayout  Orientation="Vertical" VerticalItemSpacing="5" HorizontalItemSpacing="15" Span="2" />
             </CollectionView.ItemsLayout>
@@ -36,8 +36,7 @@
         </CollectionView>
         <ScrollView  Grid.Column="2" Grid.Row="1" Orientation="Both">
             <Grid>
-                <Image x:Name="img" Source="{Binding PdfImage}" Aspect="Fill"
-                     />
+                <Image x:Name="img" Source="{Binding CurrentImage}" Aspect="Fill"/>
                 <GraphicsView x:Name="graphics"
                       Opacity="0.5"
                       WidthRequest="{Binding PageWidth}"
@@ -46,8 +45,9 @@
             </Grid>
 
         </ScrollView>
-
-        <Button Text="Get images" Command="{Binding GetImageFromPdfCommand}" Grid.Column="1" Grid.Row="2"  />
-        <Button Text="Get text" Command="{Binding GetTextFromImageCommand}" Grid.Column="2" Grid.Row="2" />
+        <Button Text="Get text from pdf" Command="{Binding GetTextFromPdfCommand}" Grid.Column="0" Grid.Row="2" />
+        <Button Text="Get images from pdf" Command="{Binding GetImageFromPdfCommand}" Grid.Column="1" Grid.Row="2"  />
+        <Button Text="Get text from image" Command="{Binding GetTextFromImageCommand}" Grid.Column="2" Grid.Row="2" />
+        <Label Text="{Binding Log}" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="3"/> 
     </Grid>
 </ContentPage>
