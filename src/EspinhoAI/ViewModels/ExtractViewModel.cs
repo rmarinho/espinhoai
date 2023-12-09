@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using Xfinium.Pdf;
 using Xfinium.Pdf.Rendering;
 using Xfinium.Pdf.Graphics;
+using System.Threading;
 
 namespace EspinhoAI
 {
@@ -23,8 +24,6 @@ namespace EspinhoAI
     {
 
         readonly Repository _repository;
-
-        const string biblioUrl = "https://bibliotecamunicipal.espinho.pt";
         IConfiguration _config;
         AzureService _azureService;
         PdfTextService _pdfTextService;
@@ -104,10 +103,13 @@ namespace EspinhoAI
         ObservableCollection<DocumentParagraph>? _paragraphs;
 
         [ObservableProperty]
-        double _pageWidth;
+        ObservableCollection<Paragraph> _ocr;
 
         [ObservableProperty]
-        double _pageHeight;
+        double _pageWidth = 800;
+
+        [ObservableProperty]
+        double _pageHeight = 1000;
 
         [ObservableProperty]
         int _scrappedCount = 0;
@@ -133,12 +135,34 @@ namespace EspinhoAI
 
             CurrentImage = null;
             Images.Clear();
-          
+
             var folder = GetFolderForDoc(CurrentDoc.FileName);
-            await PdfToImage(CurrentDoc.Path, folder);
+            await PdfPagesToImages(CurrentDoc.Path, folder);
 
             ExtractAllImages(CurrentDoc.Path, folder);
         }
+
+        [RelayCommand]
+        async Task GetOCRFromImage()
+        {
+            var folder = GetFolderForDoc(CurrentDoc.FileName);
+            var index = Images.IndexOf(CurrentImage);
+            var pageOcr = await _pdfTextService.GetOCRPage(folder, index);
+            if (pageOcr == null)
+                return;
+            
+            var pps = new ObservableCollection<Paragraph>();
+            foreach (var pOcr in pageOcr.Page.TextRegions)
+            {
+                var pp = new Paragraph(pOcr.TextEquiv.Unicode, pOcr.Coords.Points);
+                pps.Add(pp);
+            }
+            Ocr = new ObservableCollection<Paragraph>(pps);
+            PageWidth = (double)pageOcr.Page.ImageWidth;
+            PageHeight = (double)pageOcr.Page.ImageHeight;
+        }
+
+
 
         [RelayCommand]
         async Task GetTextFromImage()
@@ -182,20 +206,16 @@ namespace EspinhoAI
 
         static string GetFolderForDoc(string fileName)
         {
-            string folder = Path.Combine(pathFolder, fileName);
+            string folder = Path.Combine(pathFolder, Path.GetFileNameWithoutExtension(fileName));
             Directory.CreateDirectory(folder);
             return folder;
         }
 
         //Save each pdf page as a image
-        async Task PdfToImage(string pdfPath, string folder, double dpiX = 100, double dpiY = 100)
+        async Task PdfPagesToImages(string pdfPath, string folder, double dpiX = 100, double dpiY = 100, CancellationToken token = default)
         {
             string xfin = Path.Combine(folder, "xfin");
-            if (Directory.Exists(folder))
-            {
-                LoadExistingImages(xfin);
-            }
-            else
+            if (!Directory.Exists(xfin))
             {
                 Directory.CreateDirectory(xfin);
                 PdfFixedDocument doc = new PdfFixedDocument(pdfPath);
@@ -206,9 +226,10 @@ namespace EspinhoAI
                     PdfPageRenderer renderer = new PdfPageRenderer(item);
                     using var stream = new MemoryStream();
                     var pageImage = renderer.ConvertPageToImage(stream, PdfPageImageFormat.Png, new PdfRendererSettings(dpiX, dpiY));
-                    await File.WriteAllBytesAsync($"{xfin}/page{c}.png", stream.ToArray());
+                    await File.WriteAllBytesAsync($"{xfin}/page{c}.png", stream.ToArray(), token);
                 }
             }
+            LoadExistingImages(xfin);
         }
 
         void LoadExistingImages(string folder)
@@ -219,15 +240,17 @@ namespace EspinhoAI
             string xfin = Path.Combine(folder, "xfin");
             if (Directory.Exists(xfin) && !folder.Contains("xfin"))
                 folderToSearch = xfin;
-            var images = Directory.EnumerateFiles(folderToSearch);
+            DirectoryInfo dir = new DirectoryInfo(folderToSearch);
+            var images = dir.EnumerateFiles().OrderBy(b => b.CreationTime).Select(b => b.FullName);
             //fallback to previous
             if (images.Count() == 0 && folderToSearch != folder)
             {
-                images = Directory.EnumerateFiles(folder);
+                dir = new DirectoryInfo(folder);
+                images = dir.EnumerateFiles().OrderBy(b => b.CreationTime).Select(b => b.FullName);
             }
             foreach (var image in images)
             {
-                if(image.EndsWith(".jpg") || image.EndsWith(".png") || image.EndsWith(".jpeg"))
+                if (image.EndsWith(".jpg") || image.EndsWith(".png") || image.EndsWith(".jpeg"))
                     Images.Add(image);
             }
             CurrentImage = Images.FirstOrDefault();
@@ -263,7 +286,6 @@ namespace EspinhoAI
             return await _azureService.GetAzureAnalyzeResult(image?.Image);
         }
 
-       
         void ProcessResult(AnalyzeResult result)
         {
             Console.WriteLine($"AnalyzeResult Pages:{result.Pages.Count()}");
@@ -348,5 +370,7 @@ namespace EspinhoAI
             return JsonSerializer.Serialize(page);
         }
     }
+
+    public record Paragraph(string Content, string Points);
 
 }

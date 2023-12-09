@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Azure.AI.FormRecognizer.DocumentAnalysis;
 using Microsoft.Maui.Controls;
+using SkiaSharp;
 
 namespace EspinhoAI;
 
@@ -22,20 +24,34 @@ public partial class ExtractPage : ContentPage
 
     private void Gs_PointerEntered(object? sender, PointerEventArgs e)
     {
-         var pp =   e.GetPosition(graphics);
-        if (pp != null &&  _rects.Any(r => r.Bounds.Contains(pp.Value)))
+        var pp = e.GetPosition(graphics);
+        if (pp != null && _rects != null &&  _rects.Any(r => r.Bounds.Contains(pp.Value)))
         {
             var s = _rects.FirstOrDefault(r => r.Bounds.Contains(pp.Value));
-            System.Diagnostics.Debug.WriteLine(s.Text);
+            ToolTipProperties.SetText(graphics, s.Text);
         }
     }
 
     List<ParagraphAdorner> _rects;
     private void ViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == "PdfImage")
+        if (e.PropertyName == nameof(_vm.CurrentImage))
         {
             graphics.Drawable = null;
+        }
+        if (e.PropertyName == nameof(_vm.Ocr))
+        {
+            _rects = new List<ParagraphAdorner>();
+
+            foreach (var itemO in _vm.Ocr)
+            {
+                var adorners = GetAdorners(itemO);
+                var ww = new ParagraphAdorner(adorners.First(), itemO.Content);
+
+                _rects.Add(ww);
+            }
+            var geom = new ParagraphsDrawable(_rects);
+            graphics.Drawable = geom;
         }
         if (e.PropertyName == "Paragraphs")
         {
@@ -66,6 +82,24 @@ public partial class ExtractPage : ContentPage
             rects.Add(rec);
         }
 
+        return rects;
+    }
+
+    static IList<RectF> GetAdorners(Paragraph paragraph)
+    {
+        var rects = new List<RectF>();
+        var points = new List<PointF>();
+        var coords = paragraph.Points.Split(" ");
+        foreach (var item in coords)
+        {
+            var xy = item.Split(',');
+            points.Add(new PointF(float.Parse(xy[0]), float.Parse(xy[1])));
+        }
+        PointF origin = new(points.Min(p => p.X), points.Min(p => p.Y));
+        SizeF size = new(points.Max(p => p.X) - origin.X, points.Max(p => p.Y) - origin.Y);
+        RectF rec = new RectF(origin, size);
+        rects.Add(rec);
+     
         return rects;
     }
 

@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="OCR\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="OCR\" />
+  </ItemGroup>
 </Project>

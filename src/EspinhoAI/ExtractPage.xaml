@@ -15,6 +15,7 @@
             <ColumnDefinition Width="200" />
             <ColumnDefinition Width="200" />
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <Label Text="{Binding PdfSource}" Grid.ColumnSpan="2" />
@@ -34,9 +35,21 @@
             </CollectionView.ItemTemplate>
 
         </CollectionView>
-        <ScrollView  Grid.Column="2" Grid.Row="1" Orientation="Both">
+
+        <Label Grid.Row="0" Grid.Column="2" >
+            <Label.Text>
+                <MultiBinding StringFormat="{} Image:{0} Width:{1} Height:{2}">
+                    <Binding Path="CurrentImage"/>
+                    <Binding Path="PageWidth" />
+                    <Binding Path="PageHeight" />
+                </MultiBinding>
+            </Label.Text>
+        </Label>
+        <ScrollView  Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="1" Orientation="Both">
             <Grid>
-                <Image x:Name="img" Source="{Binding CurrentImage}" Aspect="Fill"/>
+                <Image x:Name="img" Source="{Binding CurrentImage}" Aspect="Fill"
+                       WidthRequest="{Binding PageWidth}"
+                      HeightRequest="{Binding PageHeight}"/>
                 <GraphicsView x:Name="graphics"
                       Opacity="0.5"
                       WidthRequest="{Binding PageWidth}"
@@ -48,6 +61,7 @@
         <Button Text="Get text from pdf" Command="{Binding GetTextFromPdfCommand}" Grid.Column="0" Grid.Row="2" />
         <Button Text="Get images from pdf" Command="{Binding GetImageFromPdfCommand}" Grid.Column="1" Grid.Row="2"  />
         <Button Text="Get text from image" Command="{Binding GetTextFromImageCommand}" Grid.Column="2" Grid.Row="2" />
-        <Label Text="{Binding Log}" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="3"/> 
+        <Button Text="Get OCR from pdf" Command="{Binding GetOCRFromImageCommand}" Grid.Column="3" Grid.Row="2" />
+        <Label Text="{Binding Log}" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4"/>
     </Grid>
 </ContentPage>

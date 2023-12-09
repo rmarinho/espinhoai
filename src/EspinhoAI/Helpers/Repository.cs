@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using EspinhoAI.Models;
 using SQLite;
 
@@ -14,6 +15,7 @@ namespace EspinhoAI
              _database = new SQLiteConnection(dbPath);
             _database.CreateTable<Doc>();
             _database.CreateTable<ItemScrapped>();
+            _database.CreateTable<DocPage>();
         }
 
         public List<Doc> Docs()
@@ -27,6 +29,20 @@ namespace EspinhoAI
             catch (Exception ex)
             {
                 return new List<Doc>();
+            }
+        }
+
+        public List<DocPage> DocPages()
+        {
+            try
+            {
+                var table = _database.Table<DocPage>();
+
+                return table.ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<DocPage>();
             }
         }
 

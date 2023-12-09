@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.Export;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
@@ -12,10 +14,10 @@ using UglyToad.PdfPig.Util;
 
 namespace EspinhoAI.Services
 {
-	public class PdfTextService
-	{
+    public class PdfTextService
+    {
         SvgTextExporter exporter = new SvgTextExporter();
-        HOcrTextExporter hocrTextExporter = new HOcrTextExporter(DefaultWordExtractor.Instance,DocstrumBoundingBoxes.Instance);
+        HOcrTextExporter hocrTextExporter = new HOcrTextExporter(DefaultWordExtractor.Instance, DocstrumBoundingBoxes.Instance);
         PageXmlTextExporter pageXmlTextExporter = new PageXmlTextExporter(
                      DefaultWordExtractor.Instance,
                      RecursiveXYCut.Instance,
@@ -23,27 +25,42 @@ namespace EspinhoAI.Services
 
         readonly ILogger _logger;
         public PdfTextService(ILogger<PdfTextService> logger)
-		{
+        {
             _logger = logger;
-		}
+        }
 
-		public async Task ExtractText(string filePath, string root)
-		{
-            string folder1 = Path.Combine(root, "pdf_pig_page");
+        public async Task<Models.OCR.PcGts?> GetOCRPage(string path, int page)
+        {
+            Models.OCR.PcGts? result = null;
+            string folder1 = Path.Combine(path, "pdf_pig_page");
             if (Directory.Exists(folder1))
             {
-                //read the first page
-                // var reaF = await File.ReadAllTextAsync($"{folder1}/1.json");
-                //try
-                //{
-                //    var page = await JsonSerializer.DeserializeAsync<UglyToad.PdfPig.Content.Page>(File.Open($"{folder1}/1.json", FileMode.Open));
+                var xmlData = await File.ReadAllTextAsync($"{folder1}/page{page}/document.pagexml.xml");
 
-                //}
-                //catch (Exception ex)
-                //{
+                try
+                {
+                    var serializer = new XmlSerializer(typeof(Models.OCR.PcGts));
 
-                //}
+                    using (var reader = new StringReader(xmlData))
+                    {
+                        result = serializer.Deserialize(reader) as Models.OCR.PcGts;
+                    }
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Geting OCR PAGE xml");
+                }
+            }
+            return result;
+        }
 
+        public async Task ExtractText(string filePath, string root)
+        {
+            string folder1 = Path.Combine(root, "pdf_pig_page");
+            if (Directory.Exists(folder1) && Directory.Exists(Path.Combine(folder1, $"page0")))
+            {
+                return;
             }
             using (var document = UglyToad.PdfPig.PdfDocument.Open(filePath))
             {
@@ -58,7 +75,7 @@ namespace EspinhoAI.Services
                     {
                         var im = images.ElementAt(f);
                         byte[] irm;
-                      //  IReadOnlyList<byte> irm2;
+                        //  IReadOnlyList<byte> irm2;
                         if (im.TryGetPng(out irm))
                             await File.WriteAllBytesAsync($"{pageDirectory}/image{f}.png", irm);
                         //else if (im.TryGetBytes(out irm2))
@@ -98,6 +115,6 @@ namespace EspinhoAI.Services
                 }
             }
         }
-	}
+    }
 }
 
