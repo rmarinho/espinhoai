@@ -7,21 +7,30 @@
     Shell.FlyoutBehavior="Flyout"
     Title="espinhoai">
 
-    
+    <ShellContent
+        Title="DoHomecs"
+        ContentTemplate="{DataTemplate local:HomePage}"
+        Route="home" />
+        
+     <ShellContent
+        Title="Docs"
+        ContentTemplate="{DataTemplate local:DocsPage}"
+        Route="docs" />
+
      <ShellContent
         Title="Extract"
         ContentTemplate="{DataTemplate local:ExtractPage}"
-        Route="ExtractPage" />
+        Route="extract" />
 
     <ShellContent
-        Title="Home"
+        Title="main"
         ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+        Route="main" />
 
      <ShellContent
         Title="INferance"
         ContentTemplate="{DataTemplate local:InferancePage}"
-        Route="InferancePage" />
+        Route="inferance" />
 
 
 </Shell>

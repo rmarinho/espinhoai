@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="EspinhoAI.DocsPage"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:m="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+             Title="DocsPage"
+             x:Name="docspage">
+    <ScrollView>
+        <VerticalStackLayout>
+            <material:DataGrid ItemsSource="{Binding Docs}" HorizontalOptions="Start">
+                 <ActivityIndicator IsRunning="{Binding IsBusy}" Margin="40" />
+                  
+                      <material:DataGrid.Columns>
+                      
+                        <material:DataGridColumn Binding="{Binding Id}" Title="Identity" />
+
+                        <material:DataGridColumn Title="Url">
+                            <material:DataGridColumn.CellItemTemplate>
+                                <DataTemplate>
+                                    <Label Text="{Binding Url}" TextColor="Red" HorizontalOptions="Center" VerticalOptions="Center" Margin="0" />
+                                </DataTemplate>
+                            </material:DataGridColumn.CellItemTemplate>
+                        </material:DataGridColumn>
+
+                        <material:DataGridColumn Title="Publication">
+                            <material:DataGridColumn.CellItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="Green" uranium:DynamicTint.BackgroundColorOpacity="0.5" Padding="5">
+                                        <Label Text="{Binding Publication}" TextColor="Blue" />
+                                    </Border>
+                                </DataTemplate>
+                            </material:DataGridColumn.CellItemTemplate>
+                        </material:DataGridColumn>
+
+
+                        <material:DataGridColumn Title="Actions" >
+                            <material:DataGridColumn.CellItemTemplate>
+                                <DataTemplate>
+                                    <Button Text="Go" 
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource Secondary},Dark={StaticResource SecondaryDark}}" 
+                                            TextColor="{AppThemeBinding Light={StaticResource OnSecondary},Dark={StaticResource OnSecondaryDark}}"
+                                            Command="{Binding Source={x:Reference docspage}, Path=BindingContext.GoToItemCommand}"
+                                            CommandParameter="{Binding .}"
+                                            />
+                                </DataTemplate>
+                            </material:DataGridColumn.CellItemTemplate>
+                        </material:DataGridColumn>
+                        
+                    </material:DataGrid.Columns>
+            </material:DataGrid>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

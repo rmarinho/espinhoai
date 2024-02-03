@@ -5,7 +5,10 @@ namespace EspinhoAI.Models
     {
         public int Id { get; set; }
         public int PageNumber { get; set; }
+        public double PageWidth { get; set; }
+        public double PageHeight { get; set; }
         public string Path { get; set; }
+        public string PdfPath { get; set; }
         public string? Publication { get; set; }
         public int DocId { get; set; }
         public bool IsImage { get; set; }

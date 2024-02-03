@@ -29,6 +29,16 @@ namespace EspinhoAI.Services
             _logger = logger;
         }
 
+        public bool Ana(string filePath)
+        {
+            using (var document = UglyToad.PdfPig.PdfDocument.Open(filePath))
+            {
+                System.Diagnostics.Debug.WriteLine(document.Information.Producer);
+               
+            }
+            return false;
+        }
+
         public async Task<Models.OCR.PcGts?> GetOCRPage(string path, int page)
         {
             Models.OCR.PcGts? result = null;

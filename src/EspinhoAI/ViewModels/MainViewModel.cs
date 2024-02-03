@@ -230,7 +230,7 @@ public partial class MainViewModel : ObservableObject
     static string GetFilePathForUrl(string url)
     {
         string cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var filePath = $"{cacheDir}/htmlpages/{GetDeterministicHashCode(url)}.html";
+        var filePath = $"{cacheDir}/htmlpages/{Utils.GetDeterministicHashCode(url)}.html";
         if (url.EndsWith(".pdf"))
         {
             var href = url.Replace(biblioUrl, "");
@@ -307,7 +307,7 @@ public partial class MainViewModel : ObservableObject
             
             var doc = new Doc
             {
-                Id = GetDeterministicHashCode(url),
+                Id = Utils.GetDeterministicHashCode(url),
                 Url = url,
                 Path = filePath,
                 Publication = "Defesa de Espinho",
@@ -338,7 +338,7 @@ public partial class MainViewModel : ObservableObject
 
     async Task DownloadAndSavePdf(string pdfUrl, string filePath)
     {
-        var stream = await DownloadPdf(pdfUrl);
+        var stream = await Utils.DownloadPdf(pdfUrl);
 
         Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
@@ -373,34 +373,6 @@ public partial class MainViewModel : ObservableObject
             // Handle 404 Not Found error
             Console.WriteLine("Page not found: " + url);
             return string.Empty;
-        }
-    }
-
-    static int GetDeterministicHashCode(string str)
-    {
-        unchecked
-        {
-            int hash1 = (5381 << 16) + 5381;
-            int hash2 = hash1;
-
-            for (int i = 0; i < str.Length; i += 2)
-            {
-                hash1 = ((hash1 << 5) + hash1) ^ str[i];
-                if (i == str.Length - 1)
-                    break;
-                hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
-            }
-
-            return hash1 + (hash2 * 1566083941);
-        }
-    }
-
-    static async Task<byte[]> DownloadPdf(string url)
-    {
-        using (HttpClient client = new HttpClient())
-        {
-            // Download the HTML content of the webpage
-            return await client.GetByteArrayAsync(url);
         }
     }
 

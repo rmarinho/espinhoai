@@ -29,7 +29,6 @@ namespace EspinhoAI
         PdfTextService _pdfTextService;
         static string pathFolder = "/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/";
 
-
         public ExtractViewModel(IConfiguration config, AzureService azureService, PdfTextService pdfTextService)
         {
             _config = config;
@@ -40,16 +39,17 @@ namespace EspinhoAI
             _repository = new Repository();
             Images = new ObservableCollection<ImageSource>();
             Docs = new ObservableCollection<Doc>(_repository.Docs());
+          //  DocPages = new ObservableCollection<DocPage>(_repository.DocPages());
             Docs.Add(new Doc
             {
                 Year = "2023",
                 Month = "05",
                 Day = "25",
-                FileName = "4751_25_05_2023_42421246564706dda77f98.pdf",
-
-                Path = $"/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/documentos/4751_25_05_2023_42421246564706dda77f98.pdf"
+                //FileName = "4751_25_05_2023_42421246564706dda77f98.pdf",
+                FileName = "4752_01_06_2023_74970750964799fdc3c2f9.pdf",
+                Path = $"/Users/ruimarinho/Library/Containers/com.companyname.espinhoai/Data/Documents/fotos/documentos/1867_06_01_1968_18758354055fdb325d35090.pdf"
             });
-            CurrentDoc = Docs.LastOrDefault();
+            CurrentDoc = Docs.Last();
 
         }
 
@@ -86,12 +86,21 @@ namespace EspinhoAI
                             return;
 
                         string folder = GetFolderForDoc(filename);
+                        var existingPages = _repository.DocPages().Where(ff => ff.PdfPath == CurrentDoc.Path);
+
+                        if (existingPages != null && existingPages.Count() > 0)
+                        {
+                            DocPages = new ObservableCollection<DocPage>(existingPages);
+                            CurrentDocPage = DocPages.FirstOrDefault();
+                        }
                         LoadExistingImages(folder);
                     }
                 }
             }
         }
 
+        [ObservableProperty]
+        DocPage? _currentDocPage;
 
         [ObservableProperty]
         ImageSource? _currentImage;
@@ -117,6 +126,9 @@ namespace EspinhoAI
         [ObservableProperty]
         ObservableCollection<Doc>? _docs = new ObservableCollection<Doc>();
 
+        [ObservableProperty]
+        ObservableCollection<DocPage>? _docPages = new ObservableCollection<DocPage>();
+
         [RelayCommand]
         async Task GetTextFromPdf()
         {
@@ -133,12 +145,16 @@ namespace EspinhoAI
             if (CurrentDoc == null)
                 return;
 
-            CurrentImage = null;
-            Images.Clear();
+            CurrentDocPage = null;
+            DocPages.Clear();
 
             var folder = GetFolderForDoc(CurrentDoc.FileName);
+
+            var scannedPdf = _pdfTextService.Ana(CurrentDoc.Path);
+            //using the pdf to image
             await PdfPagesToImages(CurrentDoc.Path, folder);
 
+            //extract images from pdf
             ExtractAllImages(CurrentDoc.Path, folder);
         }
 
@@ -150,7 +166,7 @@ namespace EspinhoAI
             var pageOcr = await _pdfTextService.GetOCRPage(folder, index);
             if (pageOcr == null)
                 return;
-            
+
             var pps = new ObservableCollection<Paragraph>();
             foreach (var pOcr in pageOcr.Page.TextRegions)
             {
@@ -171,7 +187,7 @@ namespace EspinhoAI
 
             var pathFolder = Path.GetDirectoryName(imageFilePath);
             var filename = Path.GetFileNameWithoutExtension(imageFilePath);
-            string finalPathFile = Path.Combine(pathFolder, $"{filename}.json");
+            string finalPathFile = Path.Combine(pathFolder, "azure", $"{filename}.json");
 
             AnalyzeResult? result = null;
             if (File.Exists(finalPathFile))
@@ -219,14 +235,26 @@ namespace EspinhoAI
             {
                 Directory.CreateDirectory(xfin);
                 PdfFixedDocument doc = new PdfFixedDocument(pdfPath);
-                int c = 0;
+                int c = 1;
                 foreach (var item in doc.Pages)
                 {
-                    c++;
+                    var filePath = $"{xfin}/page{c}.png";
+
                     PdfPageRenderer renderer = new PdfPageRenderer(item);
                     using var stream = new MemoryStream();
                     var pageImage = renderer.ConvertPageToImage(stream, PdfPageImageFormat.Png, new PdfRendererSettings(dpiX, dpiY));
                     await File.WriteAllBytesAsync($"{xfin}/page{c}.png", stream.ToArray(), token);
+
+                    DocPage docPage = new DocPage();
+                    docPage.Id = Utils.GetDeterministicHashCode(filePath);
+                    docPage.PageNumber = c;
+                    docPage.Path = filePath;
+                    docPage.Publication = "Defesa de Espinho";
+                    docPage.PdfPath = pdfPath;
+                    docPage.CreatedDate = DateTime.Now;
+                    _repository.Create(docPage);
+                    DocPages.Add(docPage);
+                    c++;
                 }
             }
             LoadExistingImages(xfin);
@@ -289,7 +317,7 @@ namespace EspinhoAI
         void ProcessResult(AnalyzeResult result)
         {
             Console.WriteLine($"AnalyzeResult Pages:{result.Pages.Count()}");
-            foreach (DocumentPage page in result.Pages)
+            foreach (Azure.AI.FormRecognizer.DocumentAnalysis.DocumentPage page in result.Pages)
             {
                 Console.WriteLine($"Document Page {page.PageNumber} has {page.Lines.Count} line(s), {page.Words.Count} word(s),");
                 Console.WriteLine($"Page Width: {page.Width} Height: {page.Height}");

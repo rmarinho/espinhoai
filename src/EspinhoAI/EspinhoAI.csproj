@@ -37,6 +37,9 @@
 		</ItemGroup>
 	</Target>-->
 
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-ios|AnyCPU'">
+	  <CreatePackage>false</CreatePackage>
+	</PropertyGroup>
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
@@ -51,25 +54,27 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.6" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.6" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
-		<PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
+		<PackageReference Include="HtmlAgilityPack" Version="1.11.57" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
 		<PackageReference Include="SQLitePCLRaw.core" Version="2.1.7" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.7" />
 		<PackageReference Include="SQLitePCLRaw.provider.dynamic_cdecl" Version="2.1.7" />
 		<PackageReference Include="SQLitePCLRaw.provider.sqlite3" Version="2.1.7" />
-		<PackageReference Include="SkiaSharp" Version="2.88.6" />
+		<PackageReference Include="SkiaSharp" Version="2.88.7" />
 		<!-- <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.16.3" /> -->
 		<PackageReference Include="itext7" Version="8.0.2" />
 		<PackageReference Include="PdfPig" Version="0.1.8" />
 		<PackageReference Include="Azure.AI.FormRecognizer" Version="4.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-		<PackageReference Include="Xfinium.Pdf.NetCore" Version="12.2.1" />
-		<PackageReference Include="Xfinium.Pdf.Render.NetCore" Version="12.2.1" />
+		<PackageReference Include="Xfinium.Pdf.NetCore" Version="12.2.2" />
+		<PackageReference Include="Xfinium.Pdf.Render.NetCore" Version="12.2.2" />
+		<PackageReference Include="UraniumUI.Material" Version="2.7.4" />
+		<PackageReference Include="UraniumUI.Icons.SegoeFluent" Version="2.7.4" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\EspinhoAI.Models\EspinhoAI.Models.csproj" />
@@ -79,14 +84,22 @@
 	  <None Remove="ViewModels\" />
 	  <None Remove="appsettings.json" />
 	  <None Remove="Services\" />
+	  <None Remove="Views\" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Helpers\" />
 	  <Folder Include="ViewModels\" />
 	  <Folder Include="Services\" />
+	  <Folder Include="Views\" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <EmbeddedResource Include="appsettings.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views/DocumentPage.xaml.cs">
+	    <DependentUpon>DocumentPage.xaml</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 </Project>

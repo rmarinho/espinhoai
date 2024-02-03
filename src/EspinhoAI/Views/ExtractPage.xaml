@@ -20,16 +20,16 @@
 
         <Label Text="{Binding PdfSource}" Grid.ColumnSpan="2" />
         <WebView  Source="{Binding PdfSource}" Grid.Column="0" Grid.Row="1" Margin="50" />
-        <CollectionView ItemsSource="{Binding Images}" Grid.Column="1" Grid.Row="1"
+        <CollectionView ItemsSource="{Binding DocPages}" Grid.Column="1" Grid.Row="1"
                         SelectionMode="Single"
-                        SelectedItem="{Binding CurrentImage, Mode=TwoWay}">
+                        SelectedItem="{Binding CurrentDocPage, Mode=TwoWay}">
             <CollectionView.ItemsLayout>
                 <GridItemsLayout  Orientation="Vertical" VerticalItemSpacing="5" HorizontalItemSpacing="15" Span="2" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Border Padding="10" WidthRequest="100" StrokeShape="Rectangle" StrokeThickness="2" Stroke="Azure">
-                        <Image Source="{Binding .}" Margin="5" BackgroundColor="Pink"  />
+                        <Image Source="{Binding Path}" Margin="5" BackgroundColor="Pink"  />
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
