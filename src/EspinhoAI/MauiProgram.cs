@@ -12,17 +12,23 @@ namespace EspinhoAI;
 
 public static class MauiProgram
 {
-	public static MauiApp CreateMauiApp()
-	{
+    public static MauiApp CreateMauiApp()
+    {
         var builder = MauiApp.CreateBuilder();
         builder
             .UseUraniumUI()
             .UseUraniumUIMaterial()
             .UseMauiApp<App>()
             .ConfigureFonts(fonts =>
-			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("Rubik-Regular.ttf", "RubikRegular");
+                fonts.AddFont("Rubik-Medium.ttf", "RubikMedium");
+                fonts.AddFont("Rubik-SemiBold.ttf", "RubikSemiBold");
+                fonts.AddFont("Rubik-Bold.ttf", "RubikBold");
+                fonts.AddFont("Bauhaus-Std-Heavy.otf", "BauhausStdHeavy");
+                fonts.AddFont("fa-solid.otf", "FA-S");
                 fonts.AddFluentIconFonts();
             });
         builder.Services.AddSingleton<Repository>();
@@ -51,8 +57,8 @@ public static class MauiProgram
         builder.Configuration.AddConfiguration(config);
         builder.Logging.AddDebug();
 #endif
-		return builder.Build();
-	}
+        return builder.Build();
+    }
 
-   
+
 }

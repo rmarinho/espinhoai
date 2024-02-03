@@ -3,10 +3,66 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="EspinhoAI.DocumentPage"
              Title="DocPage">
-    <VerticalStackLayout>
-        <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
-            HorizontalOptions="Center" />
-    </VerticalStackLayout>
+    <Grid RowSpacing="10" ColumnSpacing="20" Margin="14">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="50" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Label Text="{Binding Doc.Publication}" FontSize="88" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontFamily="RubikBold" /> 
+        <Label  FontSize="48" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontFamily="RubikMedium" >
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span Text="{Binding Year}"/>
+                    <Span Text="{Binding Month}"/>
+                    <Span Text="{Binding Day}"/>
+
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+        <Label Text="{Binding Doc.Url}" Grid.Row="1" />
+        <ScrollView Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"  Height="500" >
+                   <WebView x:Name="webView" Source="{Binding Doc.Url}"/>
+
+        </ScrollView>
+
+         <CollectionView ItemsSource="{Binding DocPages}" Grid.Column="2" Grid.Row="2"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding CurrentDocPage, Mode=TwoWay}">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout>
+                    <Label Text="No pages found" />
+                    <Button Text="Load" Command="{Binding LoadDocPagesCommand}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout  Orientation="Vertical" VerticalItemSpacing="5" HorizontalItemSpacing="15" Span="2" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="10" WidthRequest="100" StrokeShape="Rectangle" StrokeThickness="2" Stroke="Azure">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Image Source="{Binding Path}" Margin="5" BackgroundColor="LightGray" Grid.RowSpan="2"  />
+                            <Label Text="{Binding PageNumber}" FontSize="12" TextColor="Black" HorizontalOptions="Fill" Grid.Row="1"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+
+        </CollectionView>
+    </Grid>
 </ContentPage>

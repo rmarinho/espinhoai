@@ -17,6 +17,7 @@ using Xfinium.Pdf;
 using Xfinium.Pdf.Rendering;
 using Xfinium.Pdf.Graphics;
 using System.Threading;
+using AsyncAwaitBestPractices;
 
 namespace EspinhoAI
 {
@@ -26,14 +27,15 @@ namespace EspinhoAI
         public DocsViewModel(Repository repository)
         {
             _repository = repository;
-            LoadDocs();
+            
+           // LoadDocs().SafeFireAndForget(onException: ex => Console.WriteLine(ex));
         }
 
         [RelayCommand]
         public async Task LoadDocs()
         {  
             IsBusy = true;
-            await Task.Run( () =>  Docs = new ObservableCollection<Doc>(_repository.Docs()));
+            await Task.Run( () =>  Docs = new ObservableCollection<Doc>(_repository.Docs())).ConfigureAwait(false);
             IsBusy = false;
         }
 
@@ -44,7 +46,7 @@ namespace EspinhoAI
             {
                 { "doc", doc }
             };
-            await Shell.Current.GoToAsync($"//docs/doc",navigationParameter);
+            await Shell.Current.GoToAsync($"//docs/doc", navigationParameter);
         }
 
         [ObservableProperty]

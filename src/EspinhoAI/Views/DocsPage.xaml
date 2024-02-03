@@ -34,6 +34,18 @@
                             </material:DataGridColumn.CellItemTemplate>
                         </material:DataGridColumn>
 
+                         <material:DataGridColumn Title="Date">
+                            <material:DataGridColumn.CellItemTemplate>
+                                <DataTemplate>
+                                    <HorizontalStackLayout>
+                                        <Label Text="{Binding Day}"/>
+                                        <Label Text="{Binding Month}"  />
+                                        <Label Text="{Binding Year}" />
+                                    </HorizontalStackLayout>
+                                </DataTemplate>
+                            </material:DataGridColumn.CellItemTemplate>
+                        </material:DataGridColumn>
+
 
                         <material:DataGridColumn Title="Actions" >
                             <material:DataGridColumn.CellItemTemplate>

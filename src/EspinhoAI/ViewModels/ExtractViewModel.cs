@@ -178,8 +178,6 @@ namespace EspinhoAI
             PageHeight = (double)pageOcr.Page.ImageHeight;
         }
 
-
-
         [RelayCommand]
         async Task GetTextFromImage()
         {
