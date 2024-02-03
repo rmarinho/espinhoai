@@ -2,8 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="EspinhoAI.DocumentPage"
-             Title="DocPage">
-    <Grid RowSpacing="10" ColumnSpacing="20" Margin="14">
+             Title="DocPage"
+             Padding="14">
+    <Grid RowSpacing="10" ColumnSpacing="20">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -31,7 +32,7 @@
         </Label>
         <Label Text="{Binding Doc.Url}" Grid.Row="1" />
         <ScrollView Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"  Height="500" >
-                   <WebView x:Name="webView" Source="{Binding Doc.Url}"/>
+                   <WebView x:Name="webView" Source="{Binding Doc.Url}" />
 
         </ScrollView>
 

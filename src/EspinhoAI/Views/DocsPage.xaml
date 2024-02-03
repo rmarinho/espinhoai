@@ -6,62 +6,74 @@
              xmlns:m="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              Title="DocsPage"
-             x:Name="docspage">
-    <ScrollView>
-        <VerticalStackLayout>
-            <material:DataGrid ItemsSource="{Binding Docs}" HorizontalOptions="Start">
-                 <ActivityIndicator IsRunning="{Binding IsBusy}" Margin="40" />
-                  
-                      <material:DataGrid.Columns>
-                      
-                        <material:DataGridColumn Binding="{Binding Id}" Title="Identity" />
+             x:Name="docspage"
+             Padding="14">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Style x:Key="GridHeader" TargetType="Label">
+                <Setter Property="FontFamily" Value="RubikMedium" />
+                <Setter Property="HorizontalOptions" Value="Fill" />
+                <Setter Property="VerticalOptions" Value="Fill" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+                <Setter Property="BackgroundColor" Value="Gray" />
+                <Setter Property="Padding" Value="10,2,0,2" />
+            </Style>
+             <Style x:Key="GridColumn" TargetType="Label">
+                <Setter Property="FontFamily" Value="RubikRegular" />
+                <Setter Property="HorizontalOptions" Value="Fill" />
+                <Setter Property="VerticalOptions" Value="Fill" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+                <Setter Property="Padding" Value="10,2,0,2" />
+            </Style>
+        </ResourceDictionary>
+        </ContentPage.Resources>
+    <CollectionView ItemsSource="{Binding Docs}" SelectionMode="Single">
+         <CollectionView.Header>
+                <Grid ColumnSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="Id" Width="200" />
+                        <ColumnDefinition x:Name="Url" Width="*" />
+                        <ColumnDefinition x:Name="Publication" Width="200" />
+                        <ColumnDefinition x:Name="Actions" Width="100" />
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Text="Id" Style="{StaticResource GridHeader}" />
+                    <Label Grid.Column="1" Text="Url"  Style="{StaticResource GridHeader}" />
+                    <Label Grid.Column="2" Text="Publication" Style="{StaticResource GridHeader}" WidthRequest="200" />
+                    <Label Grid.Column="3" Text="Actions" Style="{StaticResource GridHeader}" />
+                </Grid>
+            </CollectionView.Header>
+        
+        <CollectionView.EmptyView>
+            <Label Text="No items found" />
+        </CollectionView.EmptyView>
 
-                        <material:DataGridColumn Title="Url">
-                            <material:DataGridColumn.CellItemTemplate>
-                                <DataTemplate>
-                                    <Label Text="{Binding Url}" TextColor="Red" HorizontalOptions="Center" VerticalOptions="Center" Margin="0" />
-                                </DataTemplate>
-                            </material:DataGridColumn.CellItemTemplate>
-                        </material:DataGridColumn>
-
-                        <material:DataGridColumn Title="Publication">
-                            <material:DataGridColumn.CellItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="Green" uranium:DynamicTint.BackgroundColorOpacity="0.5" Padding="5">
-                                        <Label Text="{Binding Publication}" TextColor="Blue" />
-                                    </Border>
-                                </DataTemplate>
-                            </material:DataGridColumn.CellItemTemplate>
-                        </material:DataGridColumn>
-
-                         <material:DataGridColumn Title="Date">
-                            <material:DataGridColumn.CellItemTemplate>
-                                <DataTemplate>
-                                    <HorizontalStackLayout>
-                                        <Label Text="{Binding Day}"/>
-                                        <Label Text="{Binding Month}"  />
-                                        <Label Text="{Binding Year}" />
-                                    </HorizontalStackLayout>
-                                </DataTemplate>
-                            </material:DataGridColumn.CellItemTemplate>
-                        </material:DataGridColumn>
-
-
-                        <material:DataGridColumn Title="Actions" >
-                            <material:DataGridColumn.CellItemTemplate>
-                                <DataTemplate>
-                                    <Button Text="Go" 
+        <CollectionView.ItemTemplate>
+            <DataTemplate>
+                <Grid RowSpacing="2" ColumnSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="100" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="3" />
+                    </Grid.RowDefinitions>    
+                    <Label Text="{Binding Id}" Style="{StaticResource GridColumn}" />
+                    <Label Grid.Column="1" Text="{Binding Url}" Style="{StaticResource GridColumn}" />
+                    <Label Grid.Column="2" Text="{Binding Publication}" Style="{StaticResource GridColumn}"   WidthRequest="200" />
+                    <Button Grid.Column="3" Text="Go"
+                                            HorizontalOptions="Fill"
+                                            Margin="10,2,10,2"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource Secondary},Dark={StaticResource SecondaryDark}}" 
                                             TextColor="{AppThemeBinding Light={StaticResource OnSecondary},Dark={StaticResource OnSecondaryDark}}"
                                             Command="{Binding Source={x:Reference docspage}, Path=BindingContext.GoToItemCommand}"
                                             CommandParameter="{Binding .}"
                                             />
-                                </DataTemplate>
-                            </material:DataGridColumn.CellItemTemplate>
-                        </material:DataGridColumn>
-                        
-                    </material:DataGrid.Columns>
-            </material:DataGrid>
-        </VerticalStackLayout>
-    </ScrollView>
+                    <Border Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="1" BackgroundColor="Black" HeightRequest="2" Margin="0,1,0,1" />
+                </Grid>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
 </ContentPage>

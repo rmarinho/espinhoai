@@ -54,15 +54,10 @@ namespace EspinhoAI
             }
 
             LoadExistingImages(folder);
-
-          
-
-            // //extract images from pdf
-            // ExtractAllImages(CurrentDoc.Path, folder);
         }
 
         [RelayCommand]
-        void LoadDocPages()
+        async Task LoadDocPages(CancellationToken token)
         {
             var filename = Path.GetFileNameWithoutExtension(Doc.FileName);
 
@@ -70,9 +65,22 @@ namespace EspinhoAI
                 return;
 
             string folder = GetFolderForDoc(filename);
+            
             //using the pdf to image
-             PdfPagesToImages(Doc.Path, folder);
+            await PdfPagesToImages(Doc.Path, folder);
+
+            //extract images from pdf
+            ExtractAllImages(Doc.Path, folder);
         }
+
+         void ExtractAllImages(string pdfPath, string folder)
+        {
+            var extractor = new MyPdfImageExtractor(pdfPath);
+            extractor.ExtractToDirectory(folder);
+
+            LoadExistingImages(folder);
+        }
+
 
         //Save each pdf page as a image
         async Task PdfPagesToImages(string pdfPath, string folder, double dpiX = 100, double dpiY = 100, CancellationToken token = default)
